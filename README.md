@@ -3,7 +3,8 @@
 
 ---
 ## 📁 폴더 구조(수정 필요)
-.
+```bash
+mealdang/
 ├── app/                 # Expo Router 라우팅(화면) 폴더
 ├── assets/              # 이미지/폰트 등 정적 리소스
 ├── components/          # 재사용 UI 컴포넌트
@@ -14,6 +15,7 @@
 ├── app.config.js        # Expo 동적 설정(필요 시)
 ├── package.json         # 스크립트/의존성
 └── tsconfig.json        # TypeScript 설정
+```
 
 ---
 ## 🚀 실행 방법
@@ -23,7 +25,7 @@
 * npm
 
 ### 2️⃣ 저장소 클론
-```powershell
+```bash
 git clone https://github.com/TEAM-NOVA/FE.git
 cd FE
 ```
@@ -33,11 +35,11 @@ cd FE
 (추후 LLM API 및 서버 연동 시 .env 설정 가이드 추가 예정)
 
 ### 4️⃣ 의존성 설치
-```powershell
+```bash
 npm install
 ```
 
 ### 5️⃣ 앱 실행 및 확인
-```powershell
+```bash
 npx expo start
 ```
