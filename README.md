@@ -26,7 +26,7 @@ mealdang/
 
 ### 2️⃣ 저장소 클론
 ```bash
-git clone https://github.com/TEAM-NOVA/FE.git
+git clone https://github.com/TEAM-N0VA/FE.git
 cd FE
 ```
 
