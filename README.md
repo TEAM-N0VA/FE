@@ -1,45 +1,50 @@
-# 🩸밀당 - Frontend
-밀당 서비스의 프론트엔드 모바일 애플리케이션 리포지토리입니다.
+# Welcome to your Expo app 👋
 
----
-## 📁 폴더 구조(수정 필요)
+This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+
+## Get started
+
+1. Install dependencies
+
+   ```bash
+   npm install
+   ```
+
+2. Start the app
+
+   ```bash
+   npx expo start
+   ```
+
+In the output, you'll find options to open the app in a
+
+- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+
+You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+
+## Get a fresh project
+
+When you're ready, run:
+
 ```bash
-mealdang/
-├── app/                 # Expo Router 라우팅(화면) 폴더
-├── assets/              # 이미지/폰트 등 정적 리소스
-├── components/          # 재사용 UI 컴포넌트
-├── constants/           # 상수 정의
-├── hooks/               # 커스텀 훅
-├── lib/                 # 유틸/헬퍼/공통 로직
-├── app.json             # Expo 앱 설정
-├── app.config.js        # Expo 동적 설정(필요 시)
-├── package.json         # 스크립트/의존성
-└── tsconfig.json        # TypeScript 설정
+npm run reset-project
 ```
 
----
-## 🚀 실행 방법
+This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
-### 1️⃣ 실행 환경
-* Node.js v22.14.0 (LTS 버전 권장)
-* npm
+## Learn more
 
-### 2️⃣ 저장소 클론
-```bash
-git clone https://github.com/TEAM-NOVA/FE.git
-cd FE
-```
+To learn more about developing your project with Expo, look at the following resources:
 
-### 3️⃣ 환경 변수 설정
-현재 연동된 외부 API가 없으므로 별도의 .env 설정이 필요하지 않습니다.
-(추후 LLM API 및 서버 연동 시 .env 설정 가이드 추가 예정)
+- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
+- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-### 4️⃣ 의존성 설치
-```bash
-npm install
-```
+## Join the community
 
-### 5️⃣ 앱 실행 및 확인
-```bash
-npx expo start
-```
+Join our community of developers creating universal apps.
+
+- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
+- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
