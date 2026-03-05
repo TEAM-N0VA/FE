@@ -7,7 +7,24 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 
+import { useEffect, useState } from 'react';
+
 export default function HomeScreen() {
+  const [message, setMessage] = useState('서버 연결 대기 중...');
+
+  useEffect(() => {
+    fetch('http://127.0.0.1:8000/api/test/')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("받은 데이터:", data);
+        setMessage(data.message); // "서버 연결 성공"
+      })
+      .catch((error) => {
+        console.error("연결 에러:", error);
+        setMessage('서버가 꺼져 있습니다');
+      });
+  }, []);
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -21,6 +38,15 @@ export default function HomeScreen() {
         <ThemedText type="title">Welcome!</ThemedText>
         <HelloWave />
       </ThemedView>
+
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle" style={{ color: '#007AFF' }}>Connection Test</ThemedText>
+        <ThemedText type="defaultSemiBold" style={{ fontSize: 20 }}>
+          {message}
+        </ThemedText>
+      </ThemedView>
+      {/* ------------------------------------------- */}
+
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
