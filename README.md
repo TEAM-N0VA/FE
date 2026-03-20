@@ -1,23 +1,20 @@
 # 🩸밀당 - Frontend
-밀당 서비스의 프론트엔드 모바일 애플리케이션 리포지토리입니다.
+임신성 당뇨 산모를 위한 YOLO 활용한 식단 자동 기록 및 RAG 기반 식단 코칭 서비스 **밀당의 프론트엔 리포지토리**입니다.
 
----
-## 📁 폴더 구조(수정 필요)
+## 📁 폴더 구조
 ```bash
 mealdang/
 ├── app/                 # Expo Router 라우팅(화면) 폴더
 ├── assets/              # 이미지/폰트 등 정적 리소스
 ├── components/          # 재사용 UI 컴포넌트
-├── constants/           # 상수 정의
+├── constants/           # 색상, 스타일, 상수 정의
 ├── hooks/               # 커스텀 훅
-├── lib/                 # 유틸/헬퍼/공통 로직
+├── scripts/             # 빌드 및 배포 보조 스크립트
 ├── app.json             # Expo 앱 설정
-├── app.config.js        # Expo 동적 설정(필요 시)
 ├── package.json         # 스크립트/의존성
 └── tsconfig.json        # TypeScript 설정
 ```
 
----
 ## 🚀 실행 방법
 
 ### 1️⃣ 실행 환경
@@ -43,3 +40,8 @@ npm install
 ```bash
 npx expo start
 ```
+
+## 🌿 브랜치 전략
+* main: 배포용
+* develop: 개발 통합
+* feature/기능명: 기능 개발
