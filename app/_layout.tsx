@@ -1,24 +1,27 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import * as eva from '@eva-design/eva';
+import { ApplicationProvider } from '@ui-kitten/components';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import React from 'react';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
+const myTheme = {
+  ...eva.light,
+  'color-basic-100': '#FFFFFF',
+  'text-basic-color': '#2E292B', // 기본 글자색 설정
+  'color-secondary-500': '#926897', 
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    // ApplicationProvider
+    <SafeAreaProvider>
+      <StatusBar style="dark" />
+      <ApplicationProvider mapping={eva.mapping} theme={myTheme}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}> 
+          <Stack screenOptions={{ headerShown: false }} />
+        </SafeAreaView>
+      </ApplicationProvider>
+    </SafeAreaProvider>
   );
 }
