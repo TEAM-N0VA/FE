@@ -1,16 +1,27 @@
-import { Tabs, useRouter } from 'expo-router';
-import React from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
+import { router, Tabs } from 'expo-router';
+import React, { useState } from 'react';
 import {
-  View,
+  Alert,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Platform,
+  View
 } from 'react-native';
-import Svg, { Path, Rect, Circle } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
+
+import { postBloodSugar } from '@/services/api';
 
 const PRIMARY = '#926897';
 const GRAY = '#C8C1C4';
+const getFormattedDate = (date: Date) => {
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${days[date.getDay()]}`;
+};
 
 function HomeIcon({ color }: { color: string }) {
   return (
@@ -63,15 +74,191 @@ type TabBarProps = {
 };
 
 function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
+  const [tempDate, setTempDate] = useState(new Date()); // 팝업 내에서 조절할 날짜
+  const [showDatePicker, setShowDatePicker] = useState(false); // 달력 표시 여부
+  const [showTimePicker, setShowTimePicker] = useState(false); // 시간 전용 상태
+
+  
+  // ─── 팝업 관련 상태 관리 ───
+  const [modalVisible, setModalVisible] = useState(false);
+  const [step, setStep] = useState<'select' | 'blood' | 'diet'>('select');
+
+  // ─── 데이터 입력 상태 ───
+  const [bloodData, setBloodData] = useState({ date: new Date().toISOString(), time: '', value: '' });
+
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
+
+  const closeModal = () => {
+    setModalVisible(false);
+    setStep('select');
+    setTempDate(new Date()); // 닫을 때 날짜 초기화
+  };
+
+  const handleApply = () => {
+    const hours = tempDate.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    const minutes = String(tempDate.getMinutes()).padStart(2, '0');
+    
+    // "시:분 AM/PM" 포맷
+    const displayTime = `${hour12}:${minutes} ${ampm}`;
+
+    setBloodData({
+      ...bloodData,
+      date: tempDate.toISOString().split('T')[0],
+      time: displayTime,
+    });
+
+    closeModal();
+    router.push('/(tabs)/bloodsugar'); // 이동
+  };
+
+  const handleBloodSubmit = async () => {
+    if (!bloodData.value || !bloodData.date || !bloodData.time) {
+    Alert.alert("알림", "모든 정보를 입력해주세요.");
+    return;
+  }
+   try {
+    // 1. 서버 규격에 맞게 데이터 가공 (YYYY-MM-DD HH:mm:00)
+    const formattedDateTime = `${bloodData.date} ${bloodData.time}:00`;
+
+    // 2. API 호출
+    await postBloodSugar({
+      user_id: 12, // 임시 유저 ID
+      measured_at: formattedDateTime,
+      value: parseInt(bloodData.value),
+      recorded_type: "POST_MEAL_2H", // 일단 하드코딩, 나중에 선택 기능 추가 가능
+      // meal_log_id: 505, // 필요 시 추가
+    });
+
+    Alert.alert("성공", "혈당 기록이 저장되었습니다.");
+    closeModal();
+  } catch (e) {
+    Alert.alert("오류", "전송에 실패했습니다. 서버 상태를 확인하세요.");
+  }
+  };
+
+ 
+
   const tabs = [
     { name: 'index', label: '홈', Icon: HomeIcon },
-    { name: 'feature', label: '식단추천', Icon: DietIcon },
-    { name: 'restaurant', label: '식당안내', Icon: RestaurantIcon },
-    { name: 'mypage', label: '마이페이지', Icon: MypageIcon },
+    { name: 'dietrecommend/index', label: '식단추천', Icon: DietIcon },
+    { name: 'restaurant/index', label: '식당안내', Icon: RestaurantIcon },
+    { name: 'mypage/index', label: '마이페이지', Icon: MypageIcon },
   ];
 
   return (
     <View style={styles.tabBarWrapper}>
+      <Modal visible={modalVisible} transparent animationType="fade">
+        <Pressable style={styles.modalOverlay} onPress={closeModal}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            
+            {/* Step 1: 선택 화면 */}
+            {step === 'select' && (
+              <View style={styles.stepContainer}>
+                <Text style={styles.modalTitle}>기록할 항목을 선택하세요</Text>
+                <TouchableOpacity style={styles.modalButton} onPress={() => setStep('diet')}>
+                  <Text style={styles.buttonText}>🥗 식단 기록하기</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.modalButton} onPress={() => setStep('blood')}>
+                  <Text style={styles.buttonText}>🩸 혈당 기록하기</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Step 2-A: 혈당 기록 화면 */}
+            {step === 'blood' && (
+              <View style={styles.stepContainer}>
+                <Text style={styles.modalTitle}>혈당 기록</Text>
+                
+                <View style={styles.dateTimeConfigContainer}>
+                  {/* 날짜 표시 및 연필 아이콘 */}
+                  <View style={styles.dateRow}>
+                    <Text style={styles.dateLabelText}>{getFormattedDate(tempDate)}</Text>
+                    <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                      <Text style={{fontSize: 18}}>✏️</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 스크롤 방식 시간 선택기 (iOS는 기본 스크롤, Android는 설정 필요) */}
+                  <View style={styles.pickerWrapper}>
+                    <Picker
+                      selectedValue={tempDate.getHours()}
+                      onValueChange={(itemValue) => {
+                        const newDate = new Date(tempDate);
+                        newDate.setHours(itemValue);
+                        setTempDate(newDate);
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      {hours.map((h) => (
+                        <Picker.Item key={h} label={`${h}시`} value={h} />
+                      ))}
+                    </Picker>
+                    <Picker
+                      selectedValue={tempDate.getMinutes()}
+                      onValueChange={(itemValue) => {
+                        const newDate = new Date(tempDate);
+                        newDate.setMinutes(itemValue);
+                        setTempDate(newDate);
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      {minutes.map((m) => (
+                        <Picker.Item key={m} label={`${m}분`} value={m} />
+                      ))}
+                    </Picker>
+                  </View>
+
+                  {/* 취소 / 적용 버튼 (시간용) */}
+                  <View style={styles.modalActionRow}>
+                    <TouchableOpacity style={styles.subButton} onPress={() => setStep('select')}>
+                      <Text style={styles.subButtonText}>취소</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={[styles.subButton, {backgroundColor: PRIMARY}]} 
+                      onPress={handleApply}
+                    >
+                      <Text style={[styles.subButtonText, {color: '#FFF'}]}>적용</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* 달력 팝업 (연필 눌렀을 때만 뜸) */}
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(false);
+                      if (selectedDate) setTempDate(selectedDate);
+                    }}
+                  />
+              )}
+
+            </View>
+          )}
+
+            {/* Step 2-B: 식단 기록 화면 (기존 로직 연결) */}
+            {step === 'diet' && (
+              <View style={styles.stepContainer}>
+                <Text style={styles.modalTitle}>식단 기록</Text>
+                <Text>이미지 분석 및 식단 입력 UI...</Text>
+                <TouchableOpacity 
+                  style={[styles.modalButton, {backgroundColor: PRIMARY}]}
+                  onPress={() => { closeModal(); router.push('/dietlog'); }}
+                >
+                  <Text style={styles.buttonText}>닫기</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <View style={styles.tabBar}>
         {tabs.map((tab, index) => {
           const route = state.routes.find((r: any) => r.name === tab.name);
@@ -92,20 +279,20 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
           };
 
           // Insert FAB before restaurant tab
-          if (tab.name === 'restaurant') {
+          if (tab.name === 'restaurant/index') {
             return (
-              <React.Fragment key={tab.name}>
-                <TouchableOpacity style={styles.fabContainer} activeOpacity={0.8}>
+              <React.Fragment key="fab-group">
+                <TouchableOpacity 
+                  style={styles.fabContainer} 
+                  activeOpacity={0.8}
+                  onPress={() => setModalVisible(true)}
+                >
                   <View style={styles.fab}>
                     <Text style={styles.fabPlus}>+</Text>
                   </View>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  key={tab.name}
-                  style={styles.tabItem}
-                  onPress={onPress}
-                  activeOpacity={0.7}
-                >
+
+                <TouchableOpacity style={styles.tabItem} onPress={onPress} activeOpacity={0.7}>
                   <tab.Icon color={color} />
                   <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
                 </TouchableOpacity>
@@ -114,12 +301,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
           }
 
           return (
-            <TouchableOpacity
-              key={tab.name}
-              style={styles.tabItem}
-              onPress={onPress}
-              activeOpacity={0.7}
-            >
+            <TouchableOpacity key={tab.name} style={styles.tabItem} onPress={onPress} activeOpacity={0.7}>
               <tab.Icon color={color} />
               <Text style={[styles.tabLabel, { color }]}>{tab.label}</Text>
             </TouchableOpacity>
@@ -160,10 +342,10 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   fab: {
-    width: 52,
-    height: 52,
+    width: 56,
+    height: 56,
     borderRadius: 26,
-    backgroundColor: PRIMARY,
+    backgroundColor: '#926897',
     borderWidth: 4,
     borderColor: '#FFFFFF',
     alignItems: 'center',
@@ -195,6 +377,141 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: 370,
+    height: 438,
+    padding: 16,
+    borderRadius: 15,
+    backgroundColor: '#F8F7F7',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepContainer: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 36,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#494145',
+    marginBottom: 10,
+  },
+  modalButton: {
+    width: 300,
+    height: 60, // padding 고려한 높이
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0DCDE',
+    // shadow 등 추가
+  },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#494145',
+  },
+  input: {
+    width: 300,
+    height: 50,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: GRAY,
+  },
+  dateTimeConfigContainer: {
+    width: '100%',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    padding: 15,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  dateLabelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#494145',
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  subButton: {
+    flex: 1,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#E0DCDE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  subButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  // 1. 피커를 감싸는 컨테이너 스타일 추가
+  inlinePickerContainer: {
+    width: '100%',
+    height: 180, // 스피너가 보일 공간
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#E0DCDE',
+  },
+  
+  // 3. (선택) 아까 썼던 subTitleText도 없다면 추가
+  subTitleText: {
+    fontSize: 14,
+    color: '#C8C1C4',
+    fontWeight: '500',
+    marginBottom: 5,
+  },
+  timeDisplayBox: {
+    width: '100%',
+    padding: 15,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  timeLabelText: { fontSize: 14, color: GRAY },
+  timeValueText: { fontSize: 16, fontWeight: '700', color: PRIMARY },
+
+  picker: {
+  width: 250, // 모달 너비에 맞춰 조절
+  height: 150,
+  backgroundColor: 'transparent',
+},
+
+  pickerWrapper: {
+    flexDirection: 'row',
+    width: '100%',
+    height: 150, // 스크롤 영역 높이
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0DCDE',
+    overflow: 'hidden',
+  },
 });
 
 export default function TabLayout() {
@@ -204,9 +521,9 @@ export default function TabLayout() {
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="feature" />
-      <Tabs.Screen name="restaurant" />
-      <Tabs.Screen name="mypage" />
+      <Tabs.Screen name="dietrecommend/index" />
+      <Tabs.Screen name="restaurant/index" />
+      <Tabs.Screen name="mypage/index" />
     </Tabs>
   );
 }

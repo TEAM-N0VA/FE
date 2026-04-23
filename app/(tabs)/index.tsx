@@ -1,22 +1,23 @@
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
-  ScrollView,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
   Dimensions,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import Svg, {
-  Path,
-  Defs,
-  LinearGradient as SvgGradient,
-  Stop,
-  Circle,
-} from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Circle,
+  Defs,
+  Path,
+  Stop,
+  LinearGradient as SvgGradient,
+} from 'react-native-svg';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PADDING = 25;
@@ -139,7 +140,7 @@ function BloodSugarChart() {
               {/* Gradient fill area */}
               <Path
                 d="M8 88.361L11.4955 90.069C14.991 91.7771 21.9819 95.1931 28.9729 93.9628C35.9638 92.7326 42.9548 86.856 49.9458 83.5972C56.9367 80.3383 63.9277 79.6972 70.9186 74.0945C77.9096 68.4918 84.9006 57.9276 91.8915 52.2001C98.8825 46.4725 105.873 45.5818 112.864 47.1049C119.855 48.628 126.846 52.5649 133.837 49.6894C140.828 46.8139 147.819 37.1259 154.81 31.3735C161.801 25.621 168.792 23.804 175.783 29.5113C182.774 35.2185 187.146 49.8019 196.756 44.8412C206.366 39.8805 209.623 22.3599 209.623 22.3599C209.623 22.3599 211.274 18.6834 214.183 14.8495C215.653 12.9113 216.314 11.6964 219.546 9.34305C226.214 4.78747 233.531 4.06771 240.019 8.34191C246.098 12.3466 253.154 18.5697 255.723 22.3599C259.776 26.2505 255.723 22.3599 259.776 26.8638C259.776 26.8638 259.83 26.9475 259.887 27.045C265.42 36.0552 274.668 43.8233 277 54.8967V140.497L8.00003 141.5L8 88.361Z"
-                fill="url(#g2)"
+                fill='#FFFFFF'
                 fillOpacity="0.3"
               />
               {/* Indicator dot */}
@@ -202,8 +203,10 @@ const DAYS = [
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
+    <View style={{ flex: 1 }}>
     <LinearGradient
       colors={['#FDE5F2', '#FDE5F2', '#F8F7F7', '#F8F7F7']}
       locations={[0, 0.05, 0.4, 1]}
@@ -360,6 +363,22 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </LinearGradient>
+    <TouchableOpacity 
+        style={[styles.floatingButton, { bottom: insets.bottom + 20 }]} 
+        activeOpacity={0.8}
+        onPress={() => router.push('/chat')} // 5. 채팅 경로 이동
+      >
+        <View style={styles.fabInner}>
+          {/* 채팅 아이콘 (간단한 Svg로 대체) */}
+          <Svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <Path 
+              d="M8.5 19H8C4 19 2 18 2 13V8C2 4 4 2 8 2H16C20 2 22 4 22 8V13C22 17 20 19 16 19H15.5L13.2 21.3C12.5 22 11.5 22 10.8 21.3L8.5 19Z" 
+              fill="#FFFFFF" 
+            />
+          </Svg>
+        </View>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -676,5 +695,25 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: '#7F7178',
     letterSpacing: 0.5,
+  },
+  floatingButton: {
+    position: 'absolute',
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#926897',
+    // 그림자 (iOS)
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    // 그림자 (Android)
+    elevation: 8,
+  },
+  fabInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

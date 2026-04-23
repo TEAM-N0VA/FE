@@ -1,0 +1,334 @@
+import { Colors } from '@/constants/Colors';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import {
+  Dimensions,
+  ImageBackground,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path, Rect } from 'react-native-svg';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const FOOD_IMAGE =
+  'https://api.builder.io/api/v1/image/assets/TEMP/6df62709e2cd1ca5bcc1517ac281c9279267b34a?width=780';
+
+const DETECT_DOTS: { left: number; top: number }[] = [
+  { left: 221, top: 82 },
+  { left: 235, top: 184 },
+  { left: 328, top: 317 },
+  { left: 182, top: 429 },
+  { left: 49,  top: 123 },
+  { left: 63,  top: 266 },
+];
+
+function ArrowLeftIcon({ color = '#F8F7F7' }: { color?: string }) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M15 19.92L8.48 13.4C7.71 12.63 7.71 11.37 8.48 10.6L15 4.08"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeMiterlimit={10}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function GalleryIcon() {
+  return (
+    <Svg width={31} height={30} viewBox="0 0 31 30" fill="none">
+      <Path
+        d="M11.34 8.67C10.81 8.67 10.29 8.88 9.91 9.26C9.54 9.64 9.32 10.16 9.32 10.7C9.32 11.24 9.54 11.76 9.91 12.14C10.29 12.52 10.81 12.73 11.34 12.73H11.35C11.89 12.73 12.4 12.52 12.78 12.14C13.15 11.76 13.37 11.24 13.37 10.7C13.37 10.16 13.15 9.64 12.78 9.26C12.4 8.88 11.89 8.67 11.35 8.67H11.34Z"
+        fill={Colors.secondary}
+      />
+      <Path
+        d="M4.65 6.875C4.65 6.129 4.94 5.414 5.47 4.886C5.99 4.359 6.7 4.063 7.44 4.063H23.56C24.3 4.063 25.01 4.359 25.53 4.886C26.06 5.414 26.35 6.129 26.35 6.875V23.125C26.35 23.871 26.06 24.586 25.53 25.114C25.01 25.641 24.3 25.938 23.56 25.938H7.44C6.7 25.938 5.99 25.641 5.47 25.114C4.94 24.586 4.65 23.871 4.65 23.125V6.875Z"
+        stroke={Colors.secondary}
+        strokeWidth={1.5}
+        fill="none"
+      />
+    </Svg>
+  );
+}
+
+function SearchIcon({ color = Colors.secondary }: { color?: string }) {
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M21 21L16.657 16.657M16.657 16.657C17.4 15.914 17.989 15.032 18.391 14.062C18.793 13.091 19 12.051 19 11C19 9.949 18.793 8.909 18.391 7.938C17.989 6.968 17.4 6.086 16.657 5.343C15.914 4.6 15.032 4.011 14.062 3.609C13.091 3.207 12.051 3 11 3C9.949 3 8.909 3.207 7.938 3.609C6.968 4.011 6.086 4.6 5.343 5.343C3.843 6.843 3 8.878 3 11C3 13.122 3.843 15.157 5.343 16.657C6.843 18.157 8.878 19 11 19C13.122 19 15.157 18.157 16.657 16.657Z"
+        stroke={color}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function DetectDot() {
+  return (
+    <Svg width={27} height={27} viewBox="0 0 27 27" fill="none">
+      <Rect x={1} y={1} width={25} height={25} rx={12.5} fill="black" fillOpacity={0.45} />
+      <Rect x={1} y={1} width={25} height={25} rx={12.5} stroke="white" strokeWidth={2} />
+      <Circle cx={13.5} cy={13.5} r={2.5} fill="white" />
+    </Svg>
+  );
+}
+
+/** L-shaped corner bracket */
+function CornerBracket({
+  position,
+}: {
+  position: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
+}) {
+  const ARM = 40;
+  const THICKNESS = 2;
+  const COLOR = Colors.primary;
+
+  const isLeft = position === 'topLeft' || position === 'bottomLeft';
+  const isTop = position === 'topLeft' || position === 'topRight';
+
+  return (
+    <View
+      style={{
+        position: 'absolute',
+        ...(isLeft ? { left: 0 } : { right: 0 }),
+        ...(isTop ? { top: 0 } : { bottom: 0 }),
+        width: ARM,
+        height: ARM,
+      }}
+    >
+      {/* Horizontal arm */}
+      <View
+        style={{
+          position: 'absolute',
+          ...(isTop ? { top: 0 } : { bottom: 0 }),
+          ...(isLeft ? { left: 0 } : { right: 0 }),
+          width: ARM,
+          height: THICKNESS,
+          backgroundColor: COLOR,
+        }}
+      />
+      {/* Vertical arm */}
+      <View
+        style={{
+          position: 'absolute',
+          ...(isLeft ? { left: 0 } : { right: 0 }),
+          ...(isTop ? { top: 0 } : { bottom: 0 }),
+          width: THICKNESS,
+          height: ARM,
+          backgroundColor: COLOR,
+        }}
+      />
+    </View>
+  );
+}
+
+export default function DietLogScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const headerHeight = insets.top + 44;
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBackBtn}>
+          <ArrowLeftIcon />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>식단 기록</Text>
+      </View>
+
+      {/* Camera / Food Image Area */}
+      <View style={styles.imageArea}>
+        <ImageBackground
+          source={{ uri: FOOD_IMAGE }}
+          style={styles.foodImage}
+          resizeMode="cover"
+        >
+          {/* Corner focus brackets */}
+          <View style={styles.focusFrame}>
+            <CornerBracket position="topLeft" />
+            <CornerBracket position="topRight" />
+            <CornerBracket position="bottomLeft" />
+            <CornerBracket position="bottomRight" />
+          </View>
+
+          {/* Detection dots */}
+          {DETECT_DOTS.map((dot, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.detectDot, { left: dot.left, top: dot.top }]}
+              activeOpacity={0.8}
+            >
+              <DetectDot />
+            </TouchableOpacity>
+          ))}
+        </ImageBackground>
+
+        {/* Bottom action bar */}
+        <View style={styles.actionBar}>
+          {/* Gallery */}
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => {/* open gallery */}}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionLabel}>갤러리에서{'\n'}불러오기</Text>
+            <View style={styles.actionIconCircle}>
+              <GalleryIcon />
+            </View>
+          </TouchableOpacity>
+
+          {/* Camera shutter */}
+          <View style={styles.shutterWrapper}>
+            <Text style={styles.photoLabel}>PHOTO</Text>
+            <TouchableOpacity style={styles.shutterOuter} activeOpacity={0.85}>
+              <View style={styles.shutterInner} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Search */}
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={() => router.push('/dietlog/search')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.actionLabel}>검색하기</Text>
+            <View style={styles.actionIconCircle}>
+              <SearchIcon color="#C8C1C4" />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const BRACKET_MARGIN = 22;
+const BRACKET_WIDTH = SCREEN_WIDTH - BRACKET_MARGIN * 2;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.secondary,
+  },
+
+  /* ── Header ── */
+  header: {
+    backgroundColor: Colors.secondary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingBottom: 10,
+    gap: 10,
+  },
+  headerBackBtn: {
+    padding: 4,
+  },
+  headerTitle: {
+    color: Colors.white,
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+
+  /* ── Image / Camera Area ── */
+  imageArea: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  foodImage: {
+    flex: 1,
+  },
+
+  /* Focus frame brackets */
+  focusFrame: {
+    position: 'absolute',
+    left: BRACKET_MARGIN,
+    top: 27,
+    width: BRACKET_WIDTH,
+    bottom: 190,
+    opacity: 0.9,
+  },
+
+  /* Detection dots */
+  detectDot: {
+    position: 'absolute',
+  },
+
+  /* ── Bottom action bar ── */
+  actionBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 182,
+    backgroundColor: 'rgba(0,0,0,0.50)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 49,
+    paddingBottom: 20,
+    paddingTop: 10,
+  },
+
+  /* Gallery / Search item */
+  actionItem: {
+    width: 86,
+    alignItems: 'center',
+    gap: 12,
+    flexDirection: 'column',
+  },
+  actionLabel: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  actionIconCircle: {
+    width: 49,
+    height: 49,
+    borderRadius: 24.5,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  /* Camera shutter */
+  shutterWrapper: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  photoLabel: {
+    color: Colors.primary,
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 1,
+  },
+  shutterOuter: {
+    width: 79,
+    height: 79,
+    borderRadius: 39.5,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  shutterInner: {
+    width: 63,
+    height: 63,
+    borderRadius: 31.5,
+    backgroundColor: '#FFFFFF',
+  },
+});
