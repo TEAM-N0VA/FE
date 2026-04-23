@@ -1,5 +1,4 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Picker } from '@react-native-picker/picker';
 import { router, Tabs } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -13,6 +12,7 @@ import {
   View
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import ScrollPicker from 'react-native-wheel-scrollview-picker';
 
 import { postBloodSugar } from '@/services/api';
 
@@ -182,34 +182,72 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
                   </View>
 
                   {/* 스크롤 방식 시간 선택기 (iOS는 기본 스크롤, Android는 설정 필요) */}
-                  <View style={styles.pickerWrapper}>
-                    <Picker
-                      selectedValue={tempDate.getHours()}
-                      onValueChange={(itemValue) => {
+                  <View style={styles.inlineWheelContainer}>
+                    <View style={styles.wheelWrapper}>
+                      <ScrollPicker
+                        dataSource={['오전', '오후']}
+                        selectedIndex={tempDate.getHours() < 12 ? 0 : 1}
+                        renderItem={(data) => <Text style={styles.wheelText}>{data}</Text>}
+                        onValueChange={(data) => {
+                          if (!data) return;
+                          const newDate = new Date(tempDate);
+                          const currentHours = newDate.getHours();
+                          if (data === '오후' && currentHours < 12) newDate.setHours(currentHours + 12);
+                          if (data === '오전' && currentHours >= 12) newDate.setHours(currentHours - 12);
+                          setTempDate(newDate);
+                        }}
+                        wrapperHeight={150}
+                        itemHeight={50}
+                        highlightColor={PRIMARY}
+                        highlightBorderWidth={2}
+                        wrapperBackground="#F8F9FA"
+                      />
+                    </View>
+                    {/* 시(Hour) 휠 */}
+                    <ScrollPicker
+                      dataSource={Array.from({ length: 12 }, (_, i) => `${i + 1}`)}
+                      selectedIndex={(tempDate.getHours() % 12 || 12) - 1}
+                      renderItem={(data) => <Text style={styles.wheelText}>{data}</Text>}
+                      onValueChange={(data) => {
+                        if (!data) return;
                         const newDate = new Date(tempDate);
-                        newDate.setHours(itemValue);
+                        const isPM = newDate.getHours() >= 12;
+                        let hour = parseInt(data);
+                        if (isPM && hour < 12) hour += 12;
+                        if (!isPM && hour === 12) hour = 0;
+                        newDate.setHours(hour);
                         setTempDate(newDate);
                       }}
-                      style={{ flex: 1 }}
-                    >
-                      {hours.map((h) => (
-                        <Picker.Item key={h} label={`${h}시`} value={h} />
-                      ))}
-                    </Picker>
-                    <Picker
-                      selectedValue={tempDate.getMinutes()}
-                      onValueChange={(itemValue) => {
+                      wrapperHeight={150}
+                      wrapperBackground="#FFFFFF"
+                      itemHeight={50}
+                      highlightColor="#926897"
+                      highlightBorderWidth={2}
+                    />
+
+                    <View style={styles.separatorContainer}>
+                      <Text style={styles.separatorText}>:</Text>
+                    </View>
+
+                    {/* 분(Minute) 휠 */}
+                    <ScrollPicker
+                      dataSource={Array.from({ length: 60 }, (_, i) => i < 10 ? `0${i}` : `${i}`)}
+                      selectedIndex={tempDate.getMinutes()}
+                      renderItem={(data) => <Text style={styles.wheelText}>{data}</Text>}
+                      onValueChange={(data) => {
+                        if (!data) return;
                         const newDate = new Date(tempDate);
-                        newDate.setMinutes(itemValue);
+                        newDate.setMinutes(parseInt(data));
                         setTempDate(newDate);
                       }}
-                      style={{ flex: 1 }}
-                    >
-                      {minutes.map((m) => (
-                        <Picker.Item key={m} label={`${m}분`} value={m} />
-                      ))}
-                    </Picker>
+                      wrapperHeight={150}
+                      wrapperBackground="#FFFFFF"
+                      itemHeight={50}
+                      highlightColor="#926897"
+                      highlightBorderWidth={2}
+                    />
                   </View>
+
 
                   {/* 취소 / 적용 버튼 (시간용) */}
                   <View style={styles.modalActionRow}>
@@ -419,15 +457,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#494145',
   },
-  input: {
-    width: 300,
-    height: 50,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    borderWidth: 1,
-    borderColor: GRAY,
-  },
   dateTimeConfigContainer: {
     width: '100%',
     alignItems: 'center',
@@ -463,54 +492,48 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
-  // 1. 피커를 감싸는 컨테이너 스타일 추가
-  inlinePickerContainer: {
-    width: '100%',
-    height: 180, // 스피너가 보일 공간
+  
+  inlineWheelContainer: {
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    height: 150,
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 15,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: '#E0DCDE',
-  },
-  
-  // 3. (선택) 아까 썼던 subTitleText도 없다면 추가
-  subTitleText: {
-    fontSize: 14,
-    color: '#C8C1C4',
-    fontWeight: '500',
-    marginBottom: 5,
-  },
-  timeDisplayBox: {
-    width: '100%',
-    padding: 15,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  timeLabelText: { fontSize: 14, color: GRAY },
-  timeValueText: { fontSize: 16, fontWeight: '700', color: PRIMARY },
-
-  picker: {
-  width: 250, // 모달 너비에 맞춰 조절
-  height: 150,
-  backgroundColor: 'transparent',
-},
-
-  pickerWrapper: {
-    flexDirection: 'row',
-    width: '100%',
-    height: 150, // 스크롤 영역 높이
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0DCDE',
     overflow: 'hidden',
+  },
+wheelWrapper: {
+    flex: 1, 
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+wheelText: {
+  fontSize: 18,
+  fontWeight: '600',
+  color: '#494145',
+  textAlign: 'center',
+  width: '100%',
+  height: 50, 
+  lineHeight: 50,
+},
+separatorContainer: {
+    width: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 50,
+    borderTopWidth: 2, 
+    borderBottomWidth: 2,
+    borderTopColor: '#926897', // PRIMARY 색상
+    borderBottomColor: '#926897',
+  },
+  separatorText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#494145',
+    marginBottom: 4,
   },
 });
 
