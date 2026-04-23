@@ -99,9 +99,7 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
     const hours = tempDate.getHours();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     const hour12 = hours % 12 || 12;
-    const minutes = String(tempDate.getMinutes()).padStart(2, '0');
-    
-    // "시:분 AM/PM" 포맷
+    const minutes = String(tempDate.getMinutes()).padStart(2, '0'); 
     const displayTime = `${hour12}:${minutes} ${ampm}`;
 
     setBloodData({
@@ -109,9 +107,11 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
       date: tempDate.toISOString().split('T')[0],
       time: displayTime,
     });
+    
+    const targetPath = step === 'blood' ? '/(tabs)/bloodsugar' : '/dietlog';
 
     closeModal();
-    router.push('/(tabs)/bloodsugar'); // 이동
+    router.push(targetPath); // 이동
   };
 
   const handleBloodSubmit = async () => {
@@ -168,9 +168,11 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
             )}
 
             {/* Step 2-A: 혈당 기록 화면 */}
-            {step === 'blood' && (
+            {(step === 'blood' || step === 'diet') && (
               <View style={styles.stepContainer}>
-                <Text style={styles.modalTitle}>혈당 기록</Text>
+                <Text style={styles.modalTitle}>
+                  {step === 'blood' ? '혈당 기록 시간' : '식사 시간'} 선택
+                </Text>
                 
                 <View style={styles.dateTimeConfigContainer}>
                   {/* 날짜 표시 및 연필 아이콘 */}
@@ -278,20 +280,6 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
 
             </View>
           )}
-
-            {/* Step 2-B: 식단 기록 화면 (기존 로직 연결) */}
-            {step === 'diet' && (
-              <View style={styles.stepContainer}>
-                <Text style={styles.modalTitle}>식단 기록</Text>
-                <Text>이미지 분석 및 식단 입력 UI...</Text>
-                <TouchableOpacity 
-                  style={[styles.modalButton, {backgroundColor: PRIMARY}]}
-                  onPress={() => { closeModal(); router.push('/dietlog'); }}
-                >
-                  <Text style={styles.buttonText}>닫기</Text>
-                </TouchableOpacity>
-              </View>
-            )}
 
           </Pressable>
         </Pressable>
