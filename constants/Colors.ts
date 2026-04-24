@@ -1,8 +1,10 @@
 export const Colors = {
   primary: '#FDE5F2',   // 배경색 (연한 핑크)
   secondary: '#926897', // 로고 및 포인트 (보라)
+  secondary_back: '#E9E1EA',
   white: '#F8F7F7',
   text: '#2E292B',      // 가독성을 위한 짙은 회색
+  lightgray: '#E0DCDE',
 };
 
 export const IconSizes = {

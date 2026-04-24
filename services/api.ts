@@ -1,10 +1,13 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
 
-const API = axios.create({
+export const API = axios.create({
   baseURL: '백엔드 서버 주소',
   timeout: 5000, // 5초 넘으면 에러 처리
 });
+
+
+
+
 
 // 혈당 조회 api
 export const getBloodSugar = async (date: string) => {
@@ -18,13 +21,7 @@ export const getBloodSugar = async (date: string) => {
 };
 
 // 혈당 기록 api
-export const postBloodSugar = async (data: {
-  user_id: number;
-  measured_at: string;
-  value: number;
-  recorded_type: string;
-  meal_log_id?: number;
-}) => {
+export const postBloodSugar = async (data: BloodSugarRequest) => { 
   try {
     const response = await API.post('/blood-sugar', data);
     return response.data;
@@ -55,11 +52,7 @@ export const createChatSession = async (userId: number) => {
 };
 
 // 챗봇 메시지 전송 API (RAG/FAQ 검색)
-export const sendChatMessage = async (chatData: {
-  sessionId: number;
-  message: string;
-  history: { role: string; content: string }[];
-}) => {
+export const sendChatMessage = async (chatData: ChatRequest) => { // ✅ 타입 적용
   try {
     const response = await API.post('/api/faq-chat/chat', chatData);
     return response.data;

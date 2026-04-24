@@ -2,7 +2,6 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { router, Tabs } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Alert,
   Modal,
   Platform,
   Pressable,
@@ -14,7 +13,6 @@ import {
 import Svg, { Path } from 'react-native-svg';
 import ScrollPicker from 'react-native-wheel-scrollview-picker';
 
-import { postBloodSugar } from '@/services/api';
 
 const PRIMARY = '#926897';
 const GRAY = '#C8C1C4';
@@ -96,50 +94,25 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
   };
 
   const handleApply = () => {
-    const hours = tempDate.getHours();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const hour12 = hours % 12 || 12;
-    const minutes = String(tempDate.getMinutes()).padStart(2, '0'); 
-    const displayTime = `${hour12}:${minutes} ${ampm}`;
+  // 1. 사용자가 휠로 선택한 최종 시간을 ISO 형식으로 캡처
+  const capturedDateTime = tempDate.toISOString(); 
 
-    setBloodData({
-      ...bloodData,
-      date: tempDate.toISOString().split('T')[0],
-      time: displayTime,
-    });
-    
-    const targetPath = step === 'blood' ? '/(tabs)/bloodsugar' : '/dietlog';
-
+  if (step === 'blood') {
+    // 🩸 혈당: 기록을 시작하기 위해 Index 화면으로 이동
     closeModal();
-    router.push(targetPath); // 이동
-  };
-
-  const handleBloodSubmit = async () => {
-    if (!bloodData.value || !bloodData.date || !bloodData.time) {
-    Alert.alert("알림", "모든 정보를 입력해주세요.");
-    return;
-  }
-   try {
-    // 1. 서버 규격에 맞게 데이터 가공 (YYYY-MM-DD HH:mm:00)
-    const formattedDateTime = `${bloodData.date} ${bloodData.time}:00`;
-
-    // 2. API 호출
-    await postBloodSugar({
-      user_id: 12, // 임시 유저 ID
-      measured_at: formattedDateTime,
-      value: parseInt(bloodData.value),
-      recorded_type: "POST_MEAL_2H", // 일단 하드코딩, 나중에 선택 기능 추가 가능
-      // meal_log_id: 505, // 필요 시 추가
+    router.push({
+      pathname: '/(tabs)/bloodsugar', 
+      params: { measuredAt: capturedDateTime } // 시간 데이터 전달
     });
-
-    Alert.alert("성공", "혈당 기록이 저장되었습니다.");
+  } else if (step === 'diet') {
+    // 🥗 식단: 식단 기록 화면으로 바로 이동
     closeModal();
-  } catch (e) {
-    Alert.alert("오류", "전송에 실패했습니다. 서버 상태를 확인하세요.");
+    router.push({
+      pathname: '/dietlog', 
+      params: { mealTime: capturedDateTime } // 식사 시간 데이터 전달
+    });
   }
-  };
-
- 
+};
 
   const tabs = [
     { name: 'index', label: '홈', Icon: HomeIcon },
