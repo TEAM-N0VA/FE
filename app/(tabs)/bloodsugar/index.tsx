@@ -1,8 +1,9 @@
 import Button from '@/components/Button';
+import SubHeader from '@/components/SubHeader';
 import { Colors } from '@/constants/Colors';
 import { Layout } from '@/constants/Layout';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { typography } from '../../../constants/typography';
 
@@ -11,17 +12,44 @@ type MeasurementStep = '공복' | '식사 전' | '식후 1시간' | '식후 2시
 
 const BloodSugarIndex = () => {
   const [selectedStep, setSelectedStep] = useState<MeasurementStep | null>(null);
-
   const steps: MeasurementStep[] = ['공복', '식사 전', '식후 1시간', '식후 2시간', '취침 전'];
+
+  const { measuredAt } = useLocalSearchParams<{ measuredAt: string }>();
+
+  const { lastSelectedStep } = useLocalSearchParams<{ lastSelectedStep: string }>();
+  const scrollRef = useRef<ScrollView>(null);
+
+    const handleNext = () => {
+    router.push({
+        pathname: '/bloodsugar/input',
+        params: { 
+        measuredAt,
+        step: selectedStep 
+        }
+    });
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!lastSelectedStep) {
+            setSelectedStep(null);
+            if (scrollRef.current) {
+                scrollRef.current.scrollTo({ y: 0, animated: false }); 
+            }
+            } else {
+            setSelectedStep(lastSelectedStep as MeasurementStep);
+            }
+        }, [lastSelectedStep])
+            
+    );
 
   return (
     <View style={styles.container}>
       {/* 1. 상단 헤더 영역 */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.headerTitle}>〈 혈당 기록</Text>
-        </TouchableOpacity>
-      </View>
+      <SubHeader 
+        title="혈당 기록" 
+        onBack={() => router.back()} 
+      />
 
       {/* 2. 상단 질문 영역 (Secondary 배경 위) */}
       <View style={styles.questionContainer}>
@@ -31,7 +59,11 @@ const BloodSugarIndex = () => {
 
       {/* 3. 하단 화이트 시트 영역 (위쪽만 둥근 형태) */}
       <View style={styles.contentSheet}>
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+            ref={scrollRef}
+            contentContainerStyle={styles.scrollContent} 
+            showsVerticalScrollIndicator={false}
+        >
           <View style={styles.buttonGroup}>
             {steps.map((step) => (
               <TouchableOpacity
@@ -43,13 +75,14 @@ const BloodSugarIndex = () => {
                 onPress={() => setSelectedStep(step)}
                 activeOpacity={0.8}
               >
-                <Text
-                  style={[
-                    styles.stepButtonText,
-                    selectedStep === step && styles.stepButtonTextSelected,
-                  ]}
-                >
-                  {step}
+                <Text 
+                    style={[
+                        styles.stepButtonText, 
+                        selectedStep === step && styles.stepButtonTextSelected
+                    ]}
+                    numberOfLines={1} 
+                    >
+                    {String(step)} 
                 </Text>
               </TouchableOpacity>
             ))}
@@ -60,7 +93,7 @@ const BloodSugarIndex = () => {
         <View style={styles.footer}>
           <Button
             title="다음 →"
-            onPress={() => router.push('/bloodsugar/input')} // 다음 입력 페이지로 이동
+            onPress={handleNext}
             disabled={!selectedStep}
             variant="primary"
             style={styles.nextButton}
@@ -127,6 +160,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0DCDE', // LightGray
     backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
   },
   stepButtonSelected: {
     backgroundColor: Colors.secondary,
