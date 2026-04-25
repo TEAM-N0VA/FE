@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { Platform } from 'react-native';
 
+import { BASE_URL } from '@/constants/config';
+
 const API = axios.create({
-  baseURL: '백엔드 서버 주소',
+  baseURL: BASE_URL,
   timeout: 5000, // 5초 넘으면 에러 처리
 });
 
@@ -56,7 +58,7 @@ export const createChatSession = async (userId: number) => {
 
 // 챗봇 메시지 전송 API (RAG/FAQ 검색)
 export const sendChatMessage = async (chatData: {
-  sessionId: number;
+  sessionId: number | null;
   message: string;
   history: { role: string; content: string }[];
 }) => {
