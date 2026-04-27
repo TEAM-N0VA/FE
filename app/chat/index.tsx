@@ -13,8 +13,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
-/* ─── API 연동  ───
-import { sendChatMessage, getChatMessages, createChatSession } from '@/services/api';─ ─── */
+import { createChatSession, sendChatMessage } from '@/services/api';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 interface Message {
@@ -42,25 +41,21 @@ export default function ChatScreen() {
 
   const flatListRef = useRef<FlatList>(null);
 
-  // 1. 세션 생성 로직 (준비 단계)
   useEffect(() => {
-    /* ─── API 연동 시 주석 해제 ───
     const initSession = async () => {
       try {
-        const res = await sendChatMessage({ sessionId, message: text, history: chatHistory });
-        if (res.data.isSuccess) setSessionId(res.data.result.sessionId);
-      } catch (e) { 
-          console.error(e);
-          alert("서버와 연결할 수 없습니다."); 
-        } finally {
-          setIsLoading(false);
-        }
+        const res = await createChatSession(12);
+        const nextSessionId = res?.result?.sessionId ?? res?.sessionId;
+        if (nextSessionId) setSessionId(nextSessionId);
+      } catch (e) {
+        console.error(e);
+      }
     };
+
     initSession();
-    ─── ─────────────────── ─── */
   }, []);
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
     const userMsg: Message = { id: Date.now().toString(), text, sender: 'user' };
@@ -68,38 +63,41 @@ export default function ChatScreen() {
     setInputText('');
     setIsLoading(true);
 
-/* ─── API 연동 시 아래 주석 해제 및 시뮬레이션 삭제 ───
     try {
-      const res = await api.post('/api/faq-chat/chat', {
-        sessionId: sessionId,
-        message: text,
-        history: messages.map(m => ({
-          role: m.sender === 'user' ? 'user' : 'assistant',
-          content: m.text
-        }))
-      });
-      if (res.data.isSuccess) {
-        const botMsg: Message = {
-          id: (Date.now() + 1).toString(),
-          text: res.data.result.answer,
-          sender: 'bot',
-        };
-        setMessages((prev) => [...prev, botMsg]);
-      }
-    } catch (e) { console.error(e); }
-    finally { setIsLoading(false); }
-    return; // 아래 시뮬레이션 실행 방지
-    ─── ────────────────────────────────── ─── */
+      let activeSessionId = sessionId;
 
-    // AI 응답 시뮬레이션 (나중에 RAG API와 연결될 부분)
-    setTimeout(() => {
+      if (!activeSessionId) {
+        const sessionRes = await createChatSession(12);
+        activeSessionId = sessionRes?.result?.sessionId ?? sessionRes?.sessionId ?? null;
+        if (activeSessionId) setSessionId(activeSessionId);
+      }
+
+      const res = await sendChatMessage({
+        sessionId: activeSessionId,
+        message: text,
+        history: messages.map((m) => ({
+          role: m.sender === 'user' ? 'user' : 'assistant',
+          content: m.text,
+        })),
+      });
+
       const botMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: `'${text}'에 대해 분석 중입니다. 잠시만 기다려주세요!`,
+        text: res?.result?.answer ?? res?.answer ?? res?.message ?? '답변을 받지 못했습니다.',
         sender: 'bot',
       };
       setMessages((prev) => [...prev, botMsg]);
-    }, 1000);
+    } catch (e) {
+      console.error(e);
+      const errorMsg: Message = {
+        id: (Date.now() + 1).toString(),
+        text: '서버와 연결할 수 없습니다. 잠시 후 다시 시도해주세요.',
+        sender: 'bot',
+      };
+      setMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -158,8 +156,13 @@ export default function ChatScreen() {
             placeholder="메시지를 입력하세요"
             value={inputText}
             onChangeText={setInputText}
+            editable={!isLoading}
           />
-          <TouchableOpacity style={styles.sendButton} onPress={() => sendMessage(inputText)}>
+          <TouchableOpacity
+            style={[styles.sendButton, isLoading && styles.sendButtonDisabled]}
+            onPress={() => sendMessage(inputText)}
+            disabled={isLoading}
+          >
             <Svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <Path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </Svg>
@@ -243,5 +246,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -507,6 +507,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="dietrecommend/index" />
       <Tabs.Screen name="restaurant/index" />
+      <Tabs.Screen name="faq-chat" options={{ href: null }} />
       <Tabs.Screen name="mypage/index" />
     </Tabs>
   );

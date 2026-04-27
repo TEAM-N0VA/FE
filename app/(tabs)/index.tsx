@@ -479,7 +479,7 @@ export default function HomeScreen() {
     <TouchableOpacity 
         style={[styles.floatingButton, { bottom: insets.bottom + 20 }]} 
         activeOpacity={0.8}
-        onPress={() => router.push('/chat')} // 5. 채팅 경로 이동
+        onPress={() => router.push('/faq-chat')} // 5. 채팅 경로 이동
       >
         <View style={styles.fabInner}>
           {/* 채팅 아이콘 (간단한 Svg로 대체) */}
