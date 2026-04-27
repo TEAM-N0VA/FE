@@ -1,18 +1,18 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  TouchableOpacity,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import Svg, { Path, Circle, G, Mask, Rect } from 'react-native-svg';
-import { Colors } from '@/constants/Colors';
+import Svg, { G, Mask, Path, Rect } from 'react-native-svg';
+import ServingSizeSheet from '../../components/ServingSizeSheet';
 
 /* ── color tokens (not yet in Colors.ts) ── */
 const C = {
@@ -151,6 +151,21 @@ export default function SearchScreen() {
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set(['1']));
 
+  const [isSheetVisible, setSheetVisible] = useState(false);
+  const [targetFood, setTargetFood] = useState<FoodItem | null>(null);
+
+  // 음식을 클릭했을 때 시트를 여는 함수
+  const handleOpenSheet = (item: FoodItem) => {
+    setTargetFood(item);
+    setSheetVisible(true);
+  };
+
+  // 시트에서 '수정하기'를 눌렀을 때 실행될 로직
+  const handleUpdateAmount = (id: string, count: number) => {
+    console.log(`${id}번 음식을 ${count}인분으로 수정함`);
+    // 여기서 전역 상태나 서버로 보낼 데이터를 업데이트하세요.
+  };
+
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -160,8 +175,20 @@ export default function SearchScreen() {
   };
 
   const handleRecord = () => {
-    // Navigate or submit recorded items
-    router.back();
+    const selectedItems = Array.from(selected);
+
+    if (selectedItems.length === 0) {
+      alert("기록할 음식을 선택해 주세요.");
+      return;
+    }
+
+    router.replace({
+      pathname: '/dietlog/result',
+      params: { 
+        addedItems: JSON.stringify(selectedItems),
+        fromSearch: 'true' 
+      }
+    });
   };
 
   return (
@@ -202,31 +229,48 @@ export default function SearchScreen() {
             const isSelected = selected.has(item.id);
             const isFirst = index === 0;
             return (
-              <TouchableOpacity
-                key={item.id}
+              <View 
+                key={item.id} 
                 style={[styles.foodRow, isFirst && styles.foodRowFirst]}
-                onPress={() => toggleSelect(item.id)}
-                activeOpacity={0.75}
               >
-                {/* Left: name + serving + badge */}
-                <View style={styles.foodInfo}>
+                {/* 1. 왼쪽: 음식 정보 영역 (클릭 시 수량 수정 시트 오픈) */}
+                <TouchableOpacity
+                  style={styles.foodInfo}
+                  onPress={() => handleOpenSheet(item)} // ✅ 여기로 위치 변경
+                  activeOpacity={0.7}
+                >
                   <Text style={styles.foodName}>{item.name}</Text>
                   <Text style={styles.foodServing}>{item.serving}</Text>
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>{item.badge}</Text>
                     <CheckIcon color={C.badgeText} />
                   </View>
-                </View>
+                </TouchableOpacity>
 
-                {/* Right: kcal + action */}
+                {/* 2. 오른쪽: 칼로리 및 선택 버튼 (클릭 시 즉시 추가/해제) */}
                 <View style={styles.foodAction}>
                   <Text style={styles.kcal}>{item.kcal}kcal</Text>
-                  {isSelected ? <CheckCircleFilled /> : <AddButton />}
+                  <TouchableOpacity 
+                    style={styles.iconHitSlop} // 터치 영역 최적화 스타일
+                    onPress={() => {
+                      console.log("아이콘 토글 호출:", item.id); // 디버깅용
+                      toggleSelect(item.id);
+                    }}
+                  >
+                    {isSelected ? <CheckCircleFilled /> : <AddButton />}
+                  </TouchableOpacity>
                 </View>
-              </TouchableOpacity>
+              </View>
             );
           })}
         </ScrollView>
+
+        <ServingSizeSheet 
+        isVisible={isSheetVisible}
+        onClose={() => setSheetVisible(false)}
+        foodItem={targetFood}
+        onUpdate={handleUpdateAmount}
+      />
 
         {/* ── Record button ── */}
         <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
@@ -309,8 +353,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    //paddingHorizontal: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: C.lightGray,
     gap: 12,
@@ -320,8 +364,10 @@ const styles = StyleSheet.create({
     borderTopColor: C.lightGray,
   },
   foodInfo: {
-    flex: 1,
-    gap: 8,
+    flex: 1,                 
+  paddingLeft: 16,         
+  paddingVertical: 8,
+  gap: 8,
   },
   foodName: {
     fontSize: 20,
@@ -354,6 +400,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    paddingRight: 16,
     flexShrink: 0,
   },
   kcal: {
@@ -377,6 +424,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(146, 104, 151, 0.5)',
     top: 4.5,
     left: 4.5,
+  },
+  iconHitSlop: {
+    padding: 5, // 아이콘 주변 터치 민감도 조절
   },
 
   /* ── Footer ── */

@@ -1,9 +1,10 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,12 +13,19 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, {
-  Circle,
-  Defs,
-  Path,
-  Stop,
-  LinearGradient as SvgGradient,
+  Path
 } from 'react-native-svg';
+
+import { getUserProfile } from '@/services/user';
+
+import BloodSugarChart from '../../components/BloodSugarChart';
+
+import axios from 'axios';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ko';
+import isoWeek from 'dayjs/plugin/isoWeek';
+dayjs.locale('ko');
+dayjs.extend(isoWeek);
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const PADDING = 25;
@@ -77,89 +85,6 @@ function ChevronRightIcon() {
   );
 }
 
-// ─── Blood Sugar Chart ────────────────────────────────────────────────────────
-
-function BloodSugarChart() {
-  const yAxisWidth = 36;
-  const chartWidth = CONTENT_WIDTH - yAxisWidth;
-  const chartHeight = (chartWidth / 277) * 141;
-  const tooltipHeight = 91;
-
-  return (
-    <View style={{ width: CONTENT_WIDTH }}>
-      {/* Y-axis + Chart row */}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        {/* Y-axis labels */}
-        <View style={{ width: yAxisWidth, height: chartHeight + tooltipHeight, justifyContent: 'flex-end' }}>
-          {['200', '160', '120', '80', '40', '0'].map((label) => (
-            <Text key={label} style={styles.chartYLabel}>{label}</Text>
-          ))}
-        </View>
-
-        {/* Chart area */}
-        <View style={{ flex: 1, position: 'relative' }}>
-          {/* Tooltip */}
-          <View style={[styles.tooltip, { width: chartWidth * 0.62 }]}>
-            <Text style={styles.tooltipTitle}>105 mg/dL  예측</Text>
-            <Text style={styles.tooltipSub}>오이 | 오리고기 100g | 현미밥 100g</Text>
-            <Text style={styles.tooltipTime}>오후 5시 30분</Text>
-            {/* Triangle pointer */}
-            <View style={styles.tooltipArrow} />
-          </View>
-
-          {/* SVG Graph */}
-          <View style={{ marginTop: tooltipHeight - 14 }}>
-            <Svg width={chartWidth} height={chartHeight} viewBox="0 0 277 141" preserveAspectRatio="none">
-              <Defs>
-                <SvgGradient id="g0" x1="166.475" y1="-17.377" x2="166.475" y2="77.5543" gradientUnits="userSpaceOnUse">
-                  <Stop stopColor="#926897" />
-                  <Stop offset="1" stopColor="#926897" stopOpacity="0.5" />
-                </SvgGradient>
-                <SvgGradient id="g1" x1="112.804" y1="-0.157" x2="112.804" y2="94.5" gradientUnits="userSpaceOnUse">
-                  <Stop stopColor="#926897" />
-                  <Stop offset="1" stopColor="#926897" stopOpacity="0.5" />
-                </SvgGradient>
-                <SvgGradient id="g2" x1="116.216" y1="31.87" x2="115.532" y2="141.487" gradientUnits="userSpaceOnUse">
-                  <Stop stopColor="#926897" stopOpacity="0.7" />
-                  <Stop offset="0.59642" stopColor="#FDE5F2" stopOpacity="0.7" />
-                </SvgGradient>
-              </Defs>
-              {/* Dashed prediction line */}
-              <Path
-                d="M209 22.6984C216.104 10.0747 224.224 3.50952 235.896 6.03438C253.149 12.5988 273.448 45.9257 277 53.5"
-                stroke="url(#g0)"
-                strokeWidth="2"
-                strokeDasharray="4 4"
-              />
-              {/* Main solid line */}
-              <Path
-                d="M8 88.5888L11.4935 90.3107C14.9869 92.0327 21.9738 95.4767 28.9607 94.2363C35.9476 92.996 42.9345 87.0714 49.9214 83.786C56.9083 80.5005 63.8952 79.8542 70.8821 74.2057C77.869 68.5573 84.8559 57.9067 91.8428 52.1324C98.8297 46.3581 105.817 45.46 112.804 46.9956C119.79 48.5311 126.777 52.5002 133.764 49.6012C140.751 46.7022 147.738 36.9351 154.725 31.1356C161.712 25.3361 168.699 23.5043 175.686 29.2582C182.673 35.0121 188.647 48.3517 195.634 44.7134C202.621 41.0751 205.507 32.8081 209 22.5"
-                stroke="url(#g1)"
-                strokeWidth="2"
-              />
-              {/* Gradient fill area */}
-              <Path
-                d="M8 88.361L11.4955 90.069C14.991 91.7771 21.9819 95.1931 28.9729 93.9628C35.9638 92.7326 42.9548 86.856 49.9458 83.5972C56.9367 80.3383 63.9277 79.6972 70.9186 74.0945C77.9096 68.4918 84.9006 57.9276 91.8915 52.2001C98.8825 46.4725 105.873 45.5818 112.864 47.1049C119.855 48.628 126.846 52.5649 133.837 49.6894C140.828 46.8139 147.819 37.1259 154.81 31.3735C161.801 25.621 168.792 23.804 175.783 29.5113C182.774 35.2185 187.146 49.8019 196.756 44.8412C206.366 39.8805 209.623 22.3599 209.623 22.3599C209.623 22.3599 211.274 18.6834 214.183 14.8495C215.653 12.9113 216.314 11.6964 219.546 9.34305C226.214 4.78747 233.531 4.06771 240.019 8.34191C246.098 12.3466 253.154 18.5697 255.723 22.3599C259.776 26.2505 255.723 22.3599 259.776 26.8638C259.776 26.8638 259.83 26.9475 259.887 27.045C265.42 36.0552 274.668 43.8233 277 54.8967V140.497L8.00003 141.5L8 88.361Z"
-                fill='#FFFFFF'
-                fillOpacity="0.3"
-              />
-              {/* Indicator dot */}
-              <Circle cx="206" cy="22" r="5" fill="white" stroke="#494145" strokeOpacity="0.7" strokeWidth="2" />
-            </Svg>
-          </View>
-        </View>
-      </View>
-
-      {/* X-axis labels */}
-      <View style={[styles.chartXAxis, { paddingLeft: yAxisWidth }]}>
-        <Text style={styles.chartXLabel}>오전 6시</Text>
-        <Text style={styles.chartXLabel}>오후 12시</Text>
-        <Text style={styles.chartXLabel}>오후 6시</Text>
-      </View>
-    </View>
-  );
-}
-
 // ─── Nutrient Bar ─────────────────────────────────────────────────────────────
 
 function NutrientBar({
@@ -187,23 +112,171 @@ function NutrientBar({
   );
 }
 
-// ─── Week Calendar ────────────────────────────────────────────────────────────
-
-const DAYS = [
-  { day: 'Mon', date: 16 },
-  { day: 'Tue', date: 17 },
-  { day: 'Wed', date: 18 },
-  { day: 'Thu', date: 19, active: true },
-  { day: 'Fri', date: 20, future: true },
-  { day: 'Sat', date: 21, future: true },
-  { day: 'Sun', date: 22, future: true },
-];
-
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+
+  const [showPicker, setShowPicker] = useState(false);
+  const onValueChange = useCallback(
+    (event: any, newDate: Date) => {
+      // 1. 피커 닫기
+      setShowPicker(false);
+
+      // 2. 확인(OK) 버튼을 눌렀을 때만 로직 실행
+      if (event === 'dateSetAction' && newDate) {
+        const selectedDateObj = dayjs(newDate);
+        
+        // 해당 월의 1일 날짜 객체 생성
+        const firstDayOfMonth = selectedDateObj.date(1);
+        
+        // 그 1일이 포함된 주의 월요일(isoWeek) 찾기
+        const firstWeekStart = firstDayOfMonth.startOf('isoWeek');
+        
+        // 상태 업데이트
+        setCurrentWeekStart(firstWeekStart);
+        setSelectedDate(firstDayOfMonth); // 1일로 선택일 변경
+      }
+    },
+    [] // 의존성 배열
+  );
+  
+  const [selectedDate, setSelectedDate] = useState(dayjs());
+  
+  const [currentWeekStart, setCurrentWeekStart] = useState(dayjs().startOf('isoWeek'));
+
+  const [reportData, setReportData] = useState<any>(null);  
+  const [userData, setUserData] = useState<any>(null);
+
+  const daysInWeek = useMemo(() => {
+    return Array.from({ length: 7 }).map((_, i) => {
+      const date = currentWeekStart.add(i, 'day');
+      return {
+        fullDate: date,
+        dayName: date.format('ddd').toUpperCase(), // MON, TUE...
+        dateNum: date.date(),
+        isToday: date.isSame(dayjs(), 'day'),
+        isSelected: date.isSame(selectedDate, 'day'),
+      };
+    });
+  }, [currentWeekStart, selectedDate]);
+
+  const moveWeek = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') setCurrentWeekStart(prev => prev.subtract(1, 'week'));
+    else setCurrentWeekStart(prev => prev.add(1, 'week'));
+  };
+
+  useEffect(() => {
+  const loadProfile = async () => {
+    try{
+      const profile = await getUserProfile(111); // 기존에 만든 프로필 API
+      setUserData(profile);
+    } catch (error) {
+      console.log("로드 실패", error);
+      setUserData({
+        nickname: "지윤",       
+        pregnancy_week: 28,
+        d_day: 117
+      });
+    }
+  };
+    loadProfile();
+  }, []);
+
+  useEffect(() => {
+    const loadDailyReport = async () => {
+      const dateStr = selectedDate.format('YYYY-MM-DD');
+
+      try {
+        const response = await axios.get(`/api/report/daily?date=${dateStr}&user_id=111`);
+        setReportData(response.data.data);
+      } catch (error) {
+        // console.error("리포트 로드 실패:", error);
+        const mockData = {
+  date: "2026-04-25",
+  
+  // 1. 하루 전체 합계 (summary -> daily_total_calories로 이름 변경됨)
+  summary: { 
+    daily_total_calories: 1082, 
+    total_carbs: 78.5, 
+    total_protein: 45.0, 
+    total_fat: 32.2 
+  },
+
+  // 2. 통합 혈당 그래프 데이터 (blood_sugar_graph로 묶음)
+  blood_sugar_graph: {
+    target_bloodsugar: 120.0,
+    timeline: [
+      { 
+        id: 1, 
+        type: "ACTUAL", 
+        value: 95, 
+        measured_at: "2026-04-25T07:10:00", 
+        record_type: "공복",
+        related_meal: null,
+      },
+      { 
+        id: 2, 
+        type: "ACTUAL", 
+        value: 130, 
+        measured_at: "2026-04-25T09:30:00", 
+        record_type: "식후1시간",
+        related_meal: {
+          meal_log_id: 501,
+          foods: ["오리고기", "현미밥", "오이"],
+          eaten_at: "2026-04-25T08:30:00"
+        }
+      },
+      { 
+        id: 3, 
+        type: "ACTUAL", 
+        value: 130, 
+        measured_at: "2026-04-25T13:30:00", 
+        record_type: "식후1시간",
+        related_meal: {
+          meal_log_id: 501,
+          foods: ["오리고기", "현미밥", "오이"],
+          eaten_at: "2026-04-25T12:30:00"
+        }
+      },
+      
+      { 
+        id: 105, 
+        type: "PREDICTED", 
+        value: 140, 
+        measured_at: "2026-04-25T21:30:00", // 예측 시간
+        record_type: "식후2시간",
+        advice: "다음 식사에는 식이섬유를 더 추가해보세요.",
+        related_meal: {
+          meal_log_id: 501,
+          foods: ["오리고기", "현미밥", "오이"],
+          eaten_at: "2026-04-25T20:30:00"
+        }
+      },
+    ]
+  },
+
+  // 3. 오늘의 식단 리스트 (하단 카드용)
+  meal_logs: [
+    { 
+      meal_log_id: 501, 
+      meal_type: "아침", 
+      eaten_at: "2026-04-25T08:30:00", 
+      img_url: "https://api.builder.io/api/v1/image/assets/TEMP/003e83e9edd9db5a23a822771f9ce649d6f936b9", 
+      total_calories: 632.0, 
+      is_analyzed: true,
+      foods: ["오리고기", "현미밥", "오이"] 
+    }
+  ]
+};
+      setReportData(mockData);
+      }
+    };
+    loadDailyReport();
+  }, [selectedDate]); // ✅ selectedDate가 변경될 때마다 실행
+
+  if (!userData || !reportData) return <View><Text>로딩 중...</Text></View>;
 
   return (
     <View style={{ flex: 1 }}>
@@ -228,8 +301,8 @@ export default function HomeScreen() {
         {/* ── Greeting + Illustration ── */}
         <View style={styles.greetingSection}>
           <View style={styles.greetingTextBlock}>
-            <Text style={styles.greetingName}>안녕하세요, 지윤님</Text>
-            <Text style={styles.greetingSub}>꼬물이 임신 28주차(출산까지 D-117)</Text>
+            <Text style={styles.greetingName}>안녕하세요, {userData.nickname}님</Text>
+            <Text style={styles.greetingSub}>임신 {userData.pregnancy_week}주차(출산까지 D-{userData.d_day})</Text>
             <Text style={styles.greetingSub}>오늘도 건강한 하루 보내세요!</Text>
           </View>
           <Image
@@ -241,59 +314,71 @@ export default function HomeScreen() {
 
         {/* ── Calendar Card ── */}
         <View style={styles.calendarCard}>
-          {/* Top row */}
-          <View style={styles.calendarTopRow}>
-            <View>
-              <Text style={styles.calendarDateSmall}>2026.03.19</Text>
-              <Text style={styles.calendarDateBig}>Today</Text>
+            <View style={styles.calendarTopRow}>
+              <View>
+                {/* 왼쪽 상단: 날짜 표기 수정 */}
+                <Text style={styles.calendarDateSmall}>{selectedDate.format('YYYY.MM.DD')}</Text>
+                <Text style={styles.calendarDateBig}>
+                  {selectedDate.isSame(dayjs(), 'day') ? 'Today' : selectedDate.format('dddd')}
+                </Text>
+              </View>
+              {/* 오른쪽 상단: 연월 토글 */}
+              <TouchableOpacity 
+                style={styles.calendarMonthRow} 
+                activeOpacity={0.7}
+                onPress={() => setShowPicker(true)}
+              >
+                <CalendarIcon />
+                <Text style={styles.calendarMonthText}>{currentWeekStart.format('YYYY년 M월')}</Text>
+                <ChevronDownIcon />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.calendarMonthRow} activeOpacity={0.7}>
-              <CalendarIcon />
-              <Text style={styles.calendarMonthText}>2026년  3월</Text>
-              <ChevronDownIcon />
-            </TouchableOpacity>
-          </View>
 
           {/* Week row */}
           <View style={styles.weekRow}>
-            <TouchableOpacity style={styles.weekArrow}>
-              <ChevronLeftIcon />
+              {/* 왼쪽 화살표 */}
+              <TouchableOpacity onPress={() => moveWeek('prev')} style={styles.weekArrow}>
+                <ChevronLeftIcon />
+              </TouchableOpacity>
+
+            {daysInWeek.map((item) => (
+                <TouchableOpacity 
+                  key={item.fullDate.toString()} 
+                  style={styles.dayItem}
+                  onPress={() => setSelectedDate(item.fullDate)}
+                >
+                  <Text
+                    style={[
+                      styles.dayLabel,
+                      item.isSelected && styles.dayLabelActive,
+                    ]}
+                  >
+                    {item.dayName}
+                  </Text>
+                  {item.isSelected && <View style={styles.activePill} />}
+                  <Text
+                    style={[
+                      styles.dayNumber,
+                      item.isSelected && styles.dayNumberActive,
+                    ]}
+                  >
+                    {item.dateNum}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+            <TouchableOpacity onPress={() => moveWeek('next')} style={styles.weekArrow}>
+                <ChevronRightIcon />
             </TouchableOpacity>
 
-            {DAYS.map((item) => (
-              <View key={item.date} style={styles.dayItem}>
-                <Text
-                  style={[
-                    styles.dayLabel,
-                    item.active && styles.dayLabelActive,
-                    item.future && styles.dayLabelFuture,
-                  ]}
-                >
-                  {item.day}
-                </Text>
-                {item.active && <View style={styles.activePill} />}
-                <Text
-                  style={[
-                    styles.dayNumber,
-                    item.active && styles.dayNumberActive,
-                    item.future && styles.dayNumberFuture,
-                  ]}
-                >
-                  {item.date}
-                </Text>
-              </View>
-            ))}
-
-            <TouchableOpacity style={styles.weekArrow}>
-              <ChevronRightIcon />
-            </TouchableOpacity>
+            
           </View>
         </View>
 
         {/* ── Blood Sugar Section ── */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>오늘의 혈당</Text>
-          <BloodSugarChart />
+          <BloodSugarChart data={reportData.blood_sugar_graph} />
         </View>
 
         {/* ── Today's Meals Section ── */}
@@ -363,6 +448,34 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
     </LinearGradient>
+    <Modal visible={showPicker} transparent={true} animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>연월 선택</Text>
+          <View style={styles.modalGrid}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+              <TouchableOpacity 
+                key={m} 
+                style={styles.monthBtn}
+                onPress={() => {
+                  // 라이브러리 대신 직접 만든 로직 실행
+                  const year = dayjs().year(); // 현재 연도 고정 (필요시 연도 변경 버튼 추가)
+                  const firstDay = dayjs().year(year).month(m - 1).date(1);
+                  setCurrentWeekStart(firstDay.startOf('isoWeek'));
+                  setSelectedDate(firstDay);
+                  setShowPicker(false);
+                }}
+              >
+                <Text style={styles.monthText}>{m}월</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity onPress={() => setShowPicker(false)} style={styles.closeBtn}>
+            <Text>닫기</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
     <TouchableOpacity 
         style={[styles.floatingButton, { bottom: insets.bottom + 20 }]} 
         activeOpacity={0.8}
@@ -441,7 +554,6 @@ const styles = StyleSheet.create({
   calendarCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 24,
     shadowColor: '#000',
@@ -455,6 +567,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
+    paddingHorizontal: 16,
   },
   calendarDateSmall: {
     fontSize: 11,
@@ -471,6 +584,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    padding: 5,
   },
   calendarMonthText: {
     fontSize: 13,
@@ -480,7 +594,8 @@ const styles = StyleSheet.create({
   weekRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    paddingHorizontal: 0,
   },
   weekArrow: {
     padding: 2,
@@ -715,5 +830,58 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: SCREEN_WIDTH * 0.8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#494145',
+    marginBottom: 20,
+  },
+  modalGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  monthBtn: {
+    width: '28%',
+    aspectRatio: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8F7F7',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E9E1EA',
+  },
+  monthText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#926897',
+  },
+  closeBtn: {
+    marginTop: 20,
+    padding: 10,
+  },
+  closeBtnText: {
+    color: '#7F7178',
+    fontSize: 14,
   },
 });

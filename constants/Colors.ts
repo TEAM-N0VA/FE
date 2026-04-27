@@ -4,7 +4,14 @@ export const Colors = {
   secondary_back: '#E9E1EA',
   white: '#F8F7F7',
   text: '#2E292B',      // 가독성을 위한 짙은 회색
+  gray: '#C8C1C4',
   lightgray: '#E0DCDE',
+  safe: '#27AE60',
+  safe_back: '#B4EECD',
+  caution: '#E6AC00',
+  caution_back: '#FFECB2',
+  risk: '#E74C3C',
+  risk_back: '#FDF3F1',
 };
 
 export const IconSizes = {

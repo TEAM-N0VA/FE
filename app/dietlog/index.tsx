@@ -1,30 +1,20 @@
 import { Colors } from '@/constants/Colors';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useRef } from 'react';
 import {
+  Alert,
   Dimensions,
-  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const FOOD_IMAGE =
-  'https://api.builder.io/api/v1/image/assets/TEMP/6df62709e2cd1ca5bcc1517ac281c9279267b34a?width=780';
-
-const DETECT_DOTS: { left: number; top: number }[] = [
-  { left: 221, top: 82 },
-  { left: 235, top: 184 },
-  { left: 328, top: 317 },
-  { left: 182, top: 429 },
-  { left: 49,  top: 123 },
-  { left: 63,  top: 266 },
-];
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 function ArrowLeftIcon({ color = '#F8F7F7' }: { color?: string }) {
   return (
@@ -72,7 +62,7 @@ function SearchIcon({ color = Colors.secondary }: { color?: string }) {
   );
 }
 
-function DetectDot() {
+/*function DetectDot() {
   return (
     <Svg width={27} height={27} viewBox="0 0 27 27" fill="none">
       <Rect x={1} y={1} width={25} height={25} rx={12.5} fill="black" fillOpacity={0.45} />
@@ -80,7 +70,7 @@ function DetectDot() {
       <Circle cx={13.5} cy={13.5} r={2.5} fill="white" />
     </Svg>
   );
-}
+}*/
 
 /** L-shaped corner bracket */
 function CornerBracket({
@@ -134,81 +124,92 @@ function CornerBracket({
 export default function DietLogScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const cameraRef = useRef<CameraView>(null); 
+  const [permission, requestPermission] = useCameraPermissions();
 
-  const headerHeight = insets.top + 44;
+  if (!permission) return <View />;
+  if (!permission.granted) {
+    return (
+      <View style={styles.container}>
+        <Text style={{ color: '#FFF', textAlign: 'center', marginTop: 100 }}>
+          카메라 권한이 필요합니다.
+        </Text>
+        <TouchableOpacity onPress={requestPermission} style={styles.shutterOuter}>
+          <Text>권한 허용</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const handleImageResult = (uri: string) => {
+    router.push({ pathname: '/dietlog/result', params: { imageUri: uri } });
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled) handleImageResult(result.assets[0].uri);
+  };
+
+  /** 카메라로 사진 찍기 로직 (셔터 버튼) */
+  const takePhoto = async () => {
+    if (cameraRef.current) {
+      try {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.7,
+          base64: false,
+          exif: false,
+        });
+        if (photo) handleImageResult(photo.uri);
+      } catch (e) {
+        Alert.alert("에러", "사진 촬영에 실패했습니다.");
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top, zIndex: 10 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBackBtn}>
           <ArrowLeftIcon />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>식단 기록</Text>
       </View>
 
-      {/* Camera / Food Image Area */}
-      <View style={styles.imageArea}>
-        <ImageBackground
-          source={{ uri: FOOD_IMAGE }}
-          style={styles.foodImage}
-          resizeMode="cover"
-        >
-          {/* Corner focus brackets */}
+      <CameraView style={styles.camera} ref={cameraRef} facing="back">
+        {/* 가이드 프레임 */}
+        <View style={styles.overlay}>
           <View style={styles.focusFrame}>
             <CornerBracket position="topLeft" />
             <CornerBracket position="topRight" />
             <CornerBracket position="bottomLeft" />
             <CornerBracket position="bottomRight" />
           </View>
+        </View>
 
-          {/* Detection dots */}
-          {DETECT_DOTS.map((dot, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.detectDot, { left: dot.left, top: dot.top }]}
-              activeOpacity={0.8}
-            >
-              <DetectDot />
-            </TouchableOpacity>
-          ))}
-        </ImageBackground>
-
-        {/* Bottom action bar */}
         <View style={styles.actionBar}>
-          {/* Gallery */}
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => {/* open gallery */}}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.actionLabel}>갤러리에서{'\n'}불러오기</Text>
-            <View style={styles.actionIconCircle}>
-              <GalleryIcon />
-            </View>
+          <TouchableOpacity style={styles.actionItem} onPress={pickImage}>
+            <Text style={styles.actionLabel}>갤러리에서{"\n"}불러오기</Text>
+            <View style={styles.actionIconCircle}><GalleryIcon /></View>
           </TouchableOpacity>
 
-          {/* Camera shutter */}
           <View style={styles.shutterWrapper}>
             <Text style={styles.photoLabel}>PHOTO</Text>
-            <TouchableOpacity style={styles.shutterOuter} activeOpacity={0.85}>
+            <TouchableOpacity style={styles.shutterOuter} onPress={takePhoto}>
               <View style={styles.shutterInner} />
             </TouchableOpacity>
           </View>
 
-          {/* Search */}
-          <TouchableOpacity
-            style={styles.actionItem}
-            onPress={() => router.push('/dietlog/search')}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.replace('/dietlog/search')}>
             <Text style={styles.actionLabel}>검색하기</Text>
-            <View style={styles.actionIconCircle}>
-              <SearchIcon color="#C8C1C4" />
-            </View>
+            <View style={styles.actionIconCircle}><SearchIcon /></View>
           </TouchableOpacity>
         </View>
-      </View>
+      </CameraView>
     </View>
   );
 }
@@ -231,6 +232,8 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 10,
   },
+  camera: { flex: 1 },
+  overlay: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   headerBackBtn: {
     padding: 4,
   },
@@ -242,13 +245,11 @@ const styles = StyleSheet.create({
   },
 
   /* ── Image / Camera Area ── */
-  imageArea: {
+  cameraArea: {
     flex: 1,
     backgroundColor: '#000',
   },
-  foodImage: {
-    flex: 1,
-  },
+  previewPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   /* Focus frame brackets */
   focusFrame: {
