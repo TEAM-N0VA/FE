@@ -1,4 +1,4 @@
-import { API } from './api';
+import { API } from '@/services/api';
 import { UserProfileResponse } from './types';
 
 export const getUserProfile = async (userId: number) => {
