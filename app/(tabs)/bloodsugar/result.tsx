@@ -8,9 +8,9 @@ import { postBloodSugar } from '@/services/bloodSugar';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import {
-    StyleSheet,
-    Text,
-    View
+  StyleSheet,
+  Text,
+  View
 } from 'react-native';
 
 const getRiskLevel = (val: number, step: string) => {
@@ -118,7 +118,12 @@ const handleFinalSubmit = async () => {
         <View style={styles.horizontalFooter}>
           <Button 
             title="홈으로" 
-            onPress={() => router.replace('/(tabs)')} 
+            onPress={() =>  router.push({
+              pathname: '/(tabs)',
+              params: { isAdded: 'sugar',
+
+              }
+            })} 
             variant="outline" 
             style={styles.flexButton} 
           />

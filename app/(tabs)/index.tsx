@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dimensions,
@@ -19,6 +19,9 @@ import Svg, {
 import { getUserProfile } from '@/services/user';
 
 import BloodSugarChart from '../../components/BloodSugarChart';
+4
+
+const DEFAULT_FOOD_IMAGE = require('../../assets/images/foodresult.jpg');
 
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -115,6 +118,7 @@ function NutrientBar({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
+  const { isAdded, inputSugarValue, inputTime, inputRecordType, imageUri } = useLocalSearchParams(); //하드코딩용
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -232,28 +236,30 @@ export default function HomeScreen() {
         id: 3, 
         type: "ACTUAL", 
         value: 130, 
-        measured_at: "2026-04-25T13:30:00", 
+        measured_at: "2026-04-25T11:30:00", 
         record_type: "식후1시간",
         related_meal: {
           meal_log_id: 501,
           foods: ["오리고기", "현미밥", "오이"],
-          eaten_at: "2026-04-25T12:30:00"
+          eaten_at: "2026-04-25T11:30:00"
         }
       },
       
       { 
-        id: 105, 
+        id: 4, 
         type: "PREDICTED", 
         value: 140, 
-        measured_at: "2026-04-25T21:30:00", // 예측 시간
+        measured_at: "2026-04-25T13:30:00", // 예측 시간
         record_type: "식후2시간",
         advice: "다음 식사에는 식이섬유를 더 추가해보세요.",
         related_meal: {
           meal_log_id: 501,
           foods: ["오리고기", "현미밥", "오이"],
-          eaten_at: "2026-04-25T20:30:00"
+          eaten_at: "2026-04-25T11:30:00"
         }
       },
+
+      
     ]
   },
 
@@ -275,6 +281,50 @@ export default function HomeScreen() {
     };
     loadDailyReport();
   }, [selectedDate]); // ✅ selectedDate가 변경될 때마다 실행
+
+  const finalReportData = useMemo(() => {
+    if (!reportData) return null; 
+    let baseData = JSON.parse(JSON.stringify(reportData));
+
+    // [1단계] 'sugar' 또는 'meal' 신호가 있을 때 실제 혈당 점 추가
+    if (isAdded === 'sugar' || isAdded === 'meal') {
+      baseData.blood_sugar_graph.timeline = baseData.blood_sugar_graph.timeline.filter(
+      (item: any) => item.type !== "PREDICTED"
+    );
+      const timePart = inputTime ? dayjs(inputTime as string).format('HH:mm:ss') : "15:30:00";
+      
+      const displayType = (inputRecordType as string) || "식후1시간";
+      baseData.blood_sugar_graph.timeline.push({
+        id: 50, 
+        type: "ACTUAL", 
+        value: 100, 
+        measured_at: "2026-04-25T17:30:00",
+        record_type: "식전",
+        advice: null,
+        related_meal: null
+    });
+    }
+
+    // [2단계] 'meal' 신호까지 있을 때 예측 혈당 점 추가
+    if (isAdded === 'meal') {
+      baseData.blood_sugar_graph.timeline.push({
+        id: 60, 
+        type: "PREDICTED", 
+        value: 125, 
+        measured_at: "2026-04-25T19:30:00", // 예측 시간
+        record_type: "식후2시간",
+        advice: "다음 식사에는 식이섬유를 더 추가해보세요.",
+        related_meal: {
+          meal_log_id: 505,
+          foods: ["쌀밥", "계란찜", "장조림", "불고기", "카레", "파김치"],
+          eaten_at: "2026-04-25T17:30:00"
+        }
+    });
+    }
+    
+
+    return baseData;
+  }, [reportData, isAdded, inputSugarValue, inputTime, inputRecordType]);
 
   if (!userData || !reportData) return <View><Text>로딩 중...</Text></View>;
 
@@ -378,7 +428,9 @@ export default function HomeScreen() {
         {/* ── Blood Sugar Section ── */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>오늘의 혈당</Text>
-          <BloodSugarChart data={reportData.blood_sugar_graph} />
+          {finalReportData?.blood_sugar_graph && (
+          <BloodSugarChart data={finalReportData.blood_sugar_graph} />
+        )}
         </View>
 
         {/* ── Today's Meals Section ── */}
@@ -387,14 +439,18 @@ export default function HomeScreen() {
 
           <View style={styles.mealCard}>
             {/* Calorie + nutrients row */}
+            {finalReportData && (
             <View style={styles.mealSummaryRow}>
-              <Text style={styles.mealCalories}>1082kcal</Text>
+              <Text style={styles.mealCalories}>
+                {isAdded === 'meal' ? '1949kcal' : '1082kcal'}
+              </Text>
               <View style={styles.nutrientsRow}>
                 <NutrientBar label="탄수화물" value={78} max={90} barColor="#67BD6E" />
                 <NutrientBar label="단백질" value={45} max={70} barColor="#F47551" />
                 <NutrientBar label="지방" value={95} max={110} barColor="#F8D558" />
               </View>
             </View>
+            )}
 
             {/* Meal cards row */}
             <View style={styles.mealItemsRow}>
@@ -422,14 +478,27 @@ export default function HomeScreen() {
 
               {/* 저녁 - dinner */}
               <View style={styles.mealItemWrapper}>
-                <View style={[styles.mealItemBox, { backgroundColor: '#E0DCDE', justifyContent: 'center', alignItems: 'center' }]}>
-                  <Image
-                    source={{ uri: 'https://api.builder.io/api/v1/image/assets/TEMP/f2d186e07437a6730ebac2b28ac668a23c9fc4ff?width=70' }}
-                    style={{ width: 35, height: 35 }}
-                    resizeMode="contain"
-                  />
+                <View style={[styles.mealItemBox, { backgroundColor: '#E9E1EA', overflow: 'hidden' }]}>
+                  {isAdded === 'meal' ? (
+                    <>
+                      {/* 1. 사용자가 찍은 사진 또는 기본 이미지 */}
+                      <Image
+                        // imageUri가 있으면 { uri: ... } 객체를, 없으면 require한 이미지 변수를 그대로 할당
+                        source={imageUri ? { uri: imageUri as string } : DEFAULT_FOOD_IMAGE}
+                        style={StyleSheet.absoluteFillObject}
+                        resizeMode="cover"
+                      />
+                      {/* 2. 이미지 위를 어둡게 덮는 오버레이 */}
+                      <View style={styles.mealPhotoOverlay} />
+                      {/* 3. 정중앙 칼로리 텍스트 */}
+                      <Text style={styles.mealCalText}>867</Text>
+                    </>
+                  ) : (
+                    /* 기록 전에는 기존처럼 숫자만 표시 */
+                    <Text style={styles.mealLunchCal}>-</Text>
+                  )}
                 </View>
-                <Text style={styles.mealItemLabel}>저녁</Text>
+                <Text style={styles.mealItemLabel}>점심</Text>
               </View>
 
               {/* 간식 - snack */}

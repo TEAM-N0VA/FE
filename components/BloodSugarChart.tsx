@@ -1,6 +1,6 @@
 import dayjs from 'dayjs';
 import React, { useMemo, useState } from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 import { BloodSugarGraphData, BloodSugarTimelineItem } from '../services/types';
 
@@ -145,15 +145,42 @@ export default function BloodSugarChart({ data }: Props) {
               const { x, y } = getCoords(p.measured_at, p.value);
               const isSelected = selectedPoint?.id === p.id;
               return (
+                <React.Fragment key={p.id}>
                 <Circle
                   key={p.id} cx={x} cy={y} r={isSelected ? "6" : "4"}
                   fill={isSelected ? "#926897" : "white"}
                   stroke="#926897" strokeWidth="2"
-                  onPress={() => setSelectedPoint(p)}
+                  pointerEvents="none"
+                  
                 />
+              </React.Fragment>
               );
             })}
           </Svg>
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            {sortedTimeline.map((p) => {
+              const { x, y } = getCoords(p.measured_at, p.value);
+              return (
+                <TouchableOpacity
+                  key={`touch-${p.id}`}
+                  activeOpacity={0.6}
+                  onPress={() => {
+                    console.log("터치됨:", p.value); // 터치 확인용
+                    setSelectedPoint(p);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: x - 25, // 터치 반경 보정 (가운데 정렬)
+                    top: y - 25,
+                    width: 50,    // 터치 영역 대폭 확장
+                    height: 50,
+                    
+                    borderRadius: 25,
+                  }}
+                />
+              );
+            })}
+          </View>
         </View>
       </View>
 

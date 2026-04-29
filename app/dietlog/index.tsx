@@ -4,8 +4,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useRef } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -122,6 +124,7 @@ function CornerBracket({
 }
 
 export default function DietLogScreen() {
+  const [loading, setLoading] = React.useState(false); //로딩 추가
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<CameraView>(null); 
@@ -142,7 +145,11 @@ export default function DietLogScreen() {
   }
 
   const handleImageResult = (uri: string) => {
-    router.push({ pathname: '/dietlog/result', params: { imageUri: uri } });
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false); // 로딩 해제
+      router.push({ pathname: '/dietlog/result', params: { imageUri: uri } });
+    }, 2500);
   };
 
   const pickImage = async () => {
@@ -210,6 +217,15 @@ export default function DietLogScreen() {
           </TouchableOpacity>
         </View>
       </CameraView>
+
+      <Modal transparent visible={loading} animationType="fade">
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+            <Text style={styles.loadingText}>AI가 음식을 분석 중이에요...</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -331,5 +347,29 @@ const styles = StyleSheet.create({
     height: 63,
     borderRadius: 31.5,
     backgroundColor: '#FFFFFF',
+  },
+
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)', // 배경을 어둡게 해서 로딩에 집중
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingBox: {
+    backgroundColor: 'white',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 15,
+    color: Colors.secondary,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

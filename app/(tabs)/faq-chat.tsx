@@ -1,19 +1,21 @@
-import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    FlatList,
-    KeyboardAvoidingView,
-    Platform,
-    Pressable,
-    SafeAreaView,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
 import { ChatBubble } from "@/components/ChatBubble";
 import { chat } from "@/lib/api";
 import { ChatMsg } from "@/lib/types";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  Text,
+  TextInput,
+  View
+} from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type UiMsg = ChatMsg & { id: string };
 
@@ -27,6 +29,8 @@ const quickChips = [
 
 export default function FaqChat() {
   const listRef = useRef<FlatList<UiMsg>>(null);
+  const insets = useSafeAreaInsets();
+  const { height } = Dimensions.get('window');
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -81,7 +85,7 @@ export default function FaqChat() {
         <KeyboardAvoidingView
           style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 6 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         {/* Message list area */}
         <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
@@ -95,10 +99,7 @@ export default function FaqChat() {
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
             onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
           />
-
-        </View>
-
-        {/* Input area (always visible) */}
+          {/* Input area (always visible) */}
         <View style={{ paddingHorizontal: 14, paddingBottom: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F0E6EF" }}>
           {/* prettier chips */}
           <FlatList
@@ -123,6 +124,10 @@ export default function FaqChat() {
               </Pressable>
             )}
           />
+
+        </View>
+
+        
 
           <View style={{ flexDirection: "row", gap: 10, alignItems: "flex-end" }}>
             <TextInput

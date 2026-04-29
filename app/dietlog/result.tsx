@@ -115,8 +115,14 @@ export default function ResultScreen() {
       <View style={styles.buttonWrapper}>
         <TouchableOpacity 
           style={styles.saveButton}
-          onPress={() => router.push('/(tabs)')}
+           onPress={() => router.push({
+                        pathname: '/(tabs)',
+                        params: { isAdded: 'meal',
+          
+                        }
+                      })} 
         >
+
           <Text style={styles.saveButtonText}>저장하기</Text>
         </TouchableOpacity>
       </View>
