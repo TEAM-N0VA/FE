@@ -12,6 +12,9 @@ export const Colors = {
   caution_back: '#FFECB2',
   risk: '#E74C3C',
   risk_back: '#FDF3F1',
+  carb: '#67BD6E',
+  protien: '#F47551',
+  fat: '#F8D558',
 };
 
 export const IconSizes = {
