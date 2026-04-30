@@ -84,11 +84,11 @@ export default function FaqChat() {
       >
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
       >
         {/* Message list area */}
-        <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 16 }}>
+        <View style={{ flex: 1, paddingHorizontal: 8, paddingTop: 16 }}>
           <FlatList
             ref={listRef}
             data={messages}
@@ -97,7 +97,7 @@ export default function FaqChat() {
             contentContainerStyle={{ paddingBottom: 14 }}
             keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
-            onLayout={() => listRef.current?.scrollToEnd({ animated: false })}
+            
           />
           {/* Input area (always visible) */}
         <View style={{ paddingHorizontal: 14, paddingBottom: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#F0E6EF" }}>
