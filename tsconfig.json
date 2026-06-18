@@ -1,8 +1,12 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "skipLibCheck": true,
     "strict": true,
     "paths": {
+      "react-native-wheel-scrollview-picker": [
+        "./types/react-native-wheel-scrollview-picker.d.ts"
+      ],
       "@/*": [
         "./*"
       ]
