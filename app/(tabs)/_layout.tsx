@@ -1,4 +1,5 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { router, Tabs } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -11,7 +12,6 @@ import {
   View
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
-import ScrollPicker from 'react-native-wheel-scrollview-picker';
 
 
 const PRIMARY = '#926897';
@@ -121,6 +121,10 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
     { name: 'mypage/index', label: '마이페이지', Icon: MypageIcon },
   ];
 
+  const currentAmpm = tempDate.getHours() < 12 ? 'AM' : 'PM';
+  const currentHour12 = tempDate.getHours() % 12 || 12;
+  const currentMinute = tempDate.getMinutes();
+  
   return (
     <View style={styles.tabBarWrapper}>
       <Modal visible={modalVisible} transparent animationType="fade">
@@ -158,69 +162,60 @@ function CustomTabBar({ state, descriptors, navigation }: TabBarProps) {
 
                   {/* 스크롤 방식 시간 선택기 (iOS는 기본 스크롤, Android는 설정 필요) */}
                   <View style={styles.inlineWheelContainer}>
-                    <View style={styles.wheelWrapper}>
-                      <ScrollPicker
-                        dataSource={['오전', '오후']}
-                        selectedIndex={tempDate.getHours() < 12 ? 0 : 1}
-                        renderItem={(data) => <Text style={styles.wheelText}>{data}</Text>}
-                        onValueChange={(data) => {
-                          if (!data) return;
-                          const newDate = new Date(tempDate);
-                          const currentHours = newDate.getHours();
-                          if (data === '오후' && currentHours < 12) newDate.setHours(currentHours + 12);
-                          if (data === '오전' && currentHours >= 12) newDate.setHours(currentHours - 12);
-                          setTempDate(newDate);
-                        }}
-                        wrapperHeight={150}
-                        itemHeight={50}
-                        highlightColor={PRIMARY}
-                        highlightBorderWidth={2}
-                        wrapperBackground="#F8F9FA"
-                      />
-                    </View>
-                    {/* 시(Hour) 휠 */}
-                    <ScrollPicker
-                      dataSource={Array.from({ length: 12 }, (_, i) => `${i + 1}`)}
-                      selectedIndex={(tempDate.getHours() % 12 || 12) - 1}
-                      renderItem={(data) => <Text style={styles.wheelText}>{data}</Text>}
-                      onValueChange={(data) => {
-                        if (!data) return;
+                    
+                    {/* [오전/오후 휠 세션] */}
+                    <Picker
+                      selectedValue={currentAmpm}
+                      style={styles.wheelPickerItem}
+                      itemStyle={styles.wheelAndroidItemStyle}
+                      onValueChange={(itemValue) => {
+                        const newDate = new Date(tempDate);
+                        const currentHours = newDate.getHours();
+                        if (itemValue === 'PM' && currentHours < 12) newDate.setHours(currentHours + 12);
+                        if (itemValue === 'AM' && currentHours >= 12) newDate.setHours(currentHours - 12);
+                        setTempDate(newDate);
+                      }}
+                    >
+                      <Picker.Item label="오전" value="AM" />
+                      <Picker.Item label="오후" value="PM" />
+                    </Picker>
+
+                    {/* [시(Hour) 휠 세션] */}
+                    <Picker
+                      selectedValue={currentHour12}
+                      style={styles.wheelPickerItem}
+                      itemStyle={styles.wheelAndroidItemStyle}
+                      onValueChange={(itemValue) => {
                         const newDate = new Date(tempDate);
                         const isPM = newDate.getHours() >= 12;
-                        let hour = parseInt(data);
+                        let hour = parseInt(itemValue as string);
                         if (isPM && hour < 12) hour += 12;
                         if (!isPM && hour === 12) hour = 0;
                         newDate.setHours(hour);
                         setTempDate(newDate);
                       }}
-                      wrapperHeight={150}
-                      wrapperBackground="#FFFFFF"
-                      itemHeight={50}
-                      highlightColor="#926897"
-                      highlightBorderWidth={2}
-                    />
+                    >
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+                        <Picker.Item key={`hour-${h}`} label={`${h}시`} value={h} />
+                      ))}
+                    </Picker>
 
-                    <View style={styles.separatorContainer}>
-                      <Text style={styles.separatorText}>:</Text>
-                    </View>
-
-                    {/* 분(Minute) 휠 */}
-                    <ScrollPicker
-                      dataSource={Array.from({ length: 60 }, (_, i) => i < 10 ? `0${i}` : `${i}`)}
-                      selectedIndex={tempDate.getMinutes()}
-                      renderItem={(data) => <Text style={styles.wheelText}>{data}</Text>}
-                      onValueChange={(data) => {
-                        if (!data) return;
+                    {/* [분(Minute) 휠 세션] */}
+                    <Picker
+                      selectedValue={currentMinute}
+                      style={styles.wheelPickerItem}
+                      itemStyle={styles.wheelAndroidItemStyle}
+                      onValueChange={(itemValue) => {
                         const newDate = new Date(tempDate);
-                        newDate.setMinutes(parseInt(data));
+                        newDate.setMinutes(parseInt(itemValue as string));
                         setTempDate(newDate);
                       }}
-                      wrapperHeight={150}
-                      wrapperBackground="#FFFFFF"
-                      itemHeight={50}
-                      highlightColor="#926897"
-                      highlightBorderWidth={2}
-                    />
+                    >
+                      {Array.from({ length: 60 }, (_, i) => i).map((m) => (
+                        <Picker.Item key={`min-${m}`} label={m < 10 ? `0${m}분` : `${m}분`} value={m} />
+                      ))}
+                    </Picker>
+
                   </View>
 
 
@@ -471,6 +466,16 @@ wheelWrapper: {
     alignItems: 'center',
     overflow: 'hidden',
   },
+  wheelPickerItem: {
+    flex: 1,                    
+    height: '100%',
+  },
+  wheelAndroidItemStyle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#494145',
+    textAlign: 'center',
+  },
 wheelText: {
   fontSize: 18,
   fontWeight: '600',
@@ -481,7 +486,7 @@ wheelText: {
   lineHeight: 50,
 },
 separatorContainer: {
-    width: 10,
+    width: 20,
     justifyContent: 'center',
     alignItems: 'center',
     height: 50,

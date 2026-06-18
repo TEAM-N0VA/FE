@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -139,9 +139,12 @@ type FoodItem = {
   badge: string;
 };
 
-const INITIAL_RESULTS: FoodItem[] = [
+const FOOD_MASTER_DATABASE: FoodItem[] = [
   { id: '1', name: '흰쌀밥', serving: '1인분 (210g)', kcal: 336, badge: '1천회 이상' },
   { id: '2', name: '흰쌀밥(즉석밥)', serving: '1인분 (210g)', kcal: 319, badge: '1천회 이상' },
+  { id: '3', name: '닭가슴살 샐러드', serving: '1인분 (250g)', kcal: 285, badge: '1천회 이상' },
+  { id: '4', name: '리코타치즈 샐러드', serving: '1인분 (230g)', kcal: 310, badge: '1천회 이상' },
+  { id: '5', name: '연어 아보카도 샐러드', serving: '1인분 (280g)', kcal: 420, badge: '1천회 이상' },
 ];
 
 /* ── Component ── */
@@ -154,7 +157,18 @@ export default function SearchScreen() {
   const [isSheetVisible, setSheetVisible] = useState(false);
   const [targetFood, setTargetFood] = useState<FoodItem | null>(null);
 
-  // 음식을 클릭했을 때 시트를 여는 함수
+  const filteredResults = useMemo(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      // 아무것도 입력하지 않았을 때는 흰쌀밥만 기본 노출
+      return FOOD_MASTER_DATABASE.filter(item => item.name.includes('흰쌀밥'));
+    }
+    // 글자를 입력하면 마스터 DB에서 이름이 매칭되는 음식을 실시간 서치
+    return FOOD_MASTER_DATABASE.filter(item => 
+      item.name.toLowerCase().includes(trimmed.toLowerCase())
+    );
+  }, [query]);
+
   const handleOpenSheet = (item: FoodItem) => {
     setTargetFood(item);
     setSheetVisible(true);
@@ -225,7 +239,7 @@ export default function SearchScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {INITIAL_RESULTS.map((item, index) => {
+          {filteredResults.map((item, index) => {
             const isSelected = selected.has(item.id);
             const isFirst = index === 0;
             return (

@@ -1,6 +1,8 @@
 import { Text } from '@ui-kitten/components';
+import * as Font from 'expo-font';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,12 +11,20 @@ import Logo from '@/components/Logo';
 import { Colors } from '@/constants/Colors';
 import { Layout } from '@/constants/Layout';
 
+SplashScreen.preventAutoHideAsync();
+
 export default function StartScreen() {
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [fontsLoaded] = Font.useFonts({
+    'BagelFatOne': require('../assets/fonts/BagelFatOne.ttf'),
+  });
 
   // 2초 뒤에 로그인 선택 화면으로 자동 이동
   useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync();
+
     const timer = setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -27,7 +37,10 @@ export default function StartScreen() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [fadeAnim, router]);
+  }
+  }, [fontsLoaded, fadeAnim, router]);
+
+  if (!fontsLoaded) return null;
 
   return (
     <LinearGradient 
@@ -46,7 +59,7 @@ export default function StartScreen() {
             <Text category='s1' style={styles.subtitle}>
               meal과 혈당 사이의 완벽한 균형
             </Text>
-            <Text category='h1' style={styles.title}>
+            <Text category='headerLogo' style={styles.title}>
               밀당
             </Text>
           </View>

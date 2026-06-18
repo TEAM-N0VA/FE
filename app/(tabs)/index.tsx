@@ -19,7 +19,7 @@ import Svg, {
 import { getUserProfile } from '@/services/user';
 
 import BloodSugarChart from '../../components/BloodSugarChart';
-4
+
 
 const DEFAULT_FOOD_IMAGE = require('../../assets/images/foodresult.jpg');
 
@@ -196,13 +196,38 @@ export default function HomeScreen() {
         const response = await axios.get(`/api/report/daily?date=${dateStr}&user_id=111`);
         setReportData(response.data.data);
       } catch (error) {
+        let timelineData = [];
+        if (selectedDate.isSame(dayjs(), 'day')) {
+          timelineData = [
+            { id: 1, type: "ACTUAL", value: 95, measured_at: `${dateStr}T07:10:00`, record_type: "공복", related_meal: null },
+            { id: 2, type: "ACTUAL", value: 130, measured_at: `${dateStr}T09:30:00`, record_type: "식후1시간", related_meal: { meal_log_id: 501, foods: ["오리고기", "현미밥", "오이"], eaten_at: `${dateStr}T08:30:00` }},
+            { id: 3, type: "ACTUAL", value: 130, measured_at: `${dateStr}T11:30:00`, record_type: "식후1시간", related_meal: { meal_log_id: 501, foods: ["오리고기", "현미밥", "오이"], eaten_at: `${dateStr}T11:30:00` }},
+            { id: 4, type: "PREDICTED", value: 140, measured_at: `${dateStr}T13:30:00`, record_type: "식후2시간", advice: "다음 식사에는 식이섬유를 더 추가해보세요.", related_meal: { meal_log_id: 501, foods: ["오리고기", "현미밥", "오이"], eaten_at: `${dateStr}T11:30:00` }}
+          ];
+        } else if (selectedDate.isSame(dayjs().subtract(1, 'day'), 'day')) {
+          // 모양 [2] : 어제 - 점심에 혈당 스파이크가 강하게 튀어 굴곡이 큰 실선 곡선 모양
+          timelineData = [
+            { id: 11, type: "ACTUAL", value: 102, measured_at: `${dateStr}T07:30:00`, record_type: "공복", related_meal: null },
+            { id: 12, type: "ACTUAL", value: 175, measured_at: `${dateStr}T13:00:00`, record_type: "식후1시간", related_meal: { meal_log_id: 502, foods: ["자장면", "탕수육"], eaten_at: `${dateStr}T12:00:00` }},
+            { id: 13, type: "ACTUAL", value: 148, measured_at: `${dateStr}T14:30:00`, record_type: "식후2시간", related_meal: { meal_log_id: 502, foods: ["자장면", "탕수육"], eaten_at: `${dateStr}T12:00:00` }},
+            { id: 14, type: "ACTUAL", value: 110, measured_at: `${dateStr}T19:30:00`, record_type: "식후2시간", advice: "혈당이 급격히 상승했었습니다. 가벼운 산책을 추천해요.", related_meal: null }
+          ];
+        } else {
+          // 모양 [3] : 그 외의 날짜들 - 하루 종일 안정 기류를 달리는 평탄하고 아주 이상적인 실선 곡선 모양
+          timelineData = [
+            { id: 21, type: "ACTUAL", value: 88, measured_at: `${dateStr}T07:05:00`, record_type: "공복", related_meal: null },
+            { id: 22, type: "ACTUAL", value: 114, measured_at: `${dateStr}T09:15:00`, record_type: "식후1시간", related_meal: { meal_log_id: 503, foods: ["두부 샐러드", "통밀빵"], eaten_at: `${dateStr}T08:15:00` }},
+            { id: 23, type: "ACTUAL", value: 95, measured_at: `${dateStr}T13:40:00`, record_type: "식후2시간", related_meal: { meal_log_id: 504, foods: ["소고기 샤브샤브"], eaten_at: `${dateStr}T11:40:00` }},
+            { id: 24, type: "ACTUAL", value: 105, measured_at: `${dateStr}T18:50:00`, record_type: "식후1시간", advice: "완벽한 혈당 관리 상태입니다! 훌륭합니다.", related_meal: null }
+          ];
+        }
         // console.error("리포트 로드 실패:", error);
         const mockData = {
-  date: "2026-04-25",
+  date: dateStr,
   
   // 1. 하루 전체 합계 (summary -> daily_total_calories로 이름 변경됨)
   summary: { 
-    daily_total_calories: 1082, 
+    daily_total_calories: selectedDate.isSame(dayjs(), 'day') ? 1082 : 1420,
     total_carbs: 78.5, 
     total_protein: 45.0, 
     total_fat: 32.2 
@@ -211,56 +236,7 @@ export default function HomeScreen() {
   // 2. 통합 혈당 그래프 데이터 (blood_sugar_graph로 묶음)
   blood_sugar_graph: {
     target_bloodsugar: 120.0,
-    timeline: [
-      { 
-        id: 1, 
-        type: "ACTUAL", 
-        value: 95, 
-        measured_at: "2026-04-25T07:10:00", 
-        record_type: "공복",
-        related_meal: null,
-      },
-      { 
-        id: 2, 
-        type: "ACTUAL", 
-        value: 130, 
-        measured_at: "2026-04-25T09:30:00", 
-        record_type: "식후1시간",
-        related_meal: {
-          meal_log_id: 501,
-          foods: ["오리고기", "현미밥", "오이"],
-          eaten_at: "2026-04-25T08:30:00"
-        }
-      },
-      { 
-        id: 3, 
-        type: "ACTUAL", 
-        value: 130, 
-        measured_at: "2026-04-25T11:30:00", 
-        record_type: "식후1시간",
-        related_meal: {
-          meal_log_id: 501,
-          foods: ["오리고기", "현미밥", "오이"],
-          eaten_at: "2026-04-25T11:30:00"
-        }
-      },
-      
-      { 
-        id: 4, 
-        type: "PREDICTED", 
-        value: 140, 
-        measured_at: "2026-04-25T13:30:00", // 예측 시간
-        record_type: "식후2시간",
-        advice: "다음 식사에는 식이섬유를 더 추가해보세요.",
-        related_meal: {
-          meal_log_id: 501,
-          foods: ["오리고기", "현미밥", "오이"],
-          eaten_at: "2026-04-25T11:30:00"
-        }
-      },
-
-      
-    ]
+    timeline: timelineData
   },
 
   // 3. 오늘의 식단 리스트 (하단 카드용)
@@ -286,19 +262,19 @@ export default function HomeScreen() {
     if (!reportData) return null; 
     let baseData = JSON.parse(JSON.stringify(reportData));
 
+    const dateStr = selectedDate.format('YYYY-MM-DD');
+
     // [1단계] 'sugar' 또는 'meal' 신호가 있을 때 실제 혈당 점 추가
     if (isAdded === 'sugar' || isAdded === 'meal') {
       baseData.blood_sugar_graph.timeline = baseData.blood_sugar_graph.timeline.filter(
       (item: any) => item.type !== "PREDICTED"
     );
-      const timePart = inputTime ? dayjs(inputTime as string).format('HH:mm:ss') : "15:30:00";
       
-      const displayType = (inputRecordType as string) || "식후1시간";
       baseData.blood_sugar_graph.timeline.push({
         id: 50, 
         type: "ACTUAL", 
         value: 100, 
-        measured_at: "2026-04-25T17:30:00",
+        measured_at: `${dateStr}T17:30:00`,
         record_type: "식전",
         advice: null,
         related_meal: null
@@ -311,7 +287,7 @@ export default function HomeScreen() {
         id: 60, 
         type: "PREDICTED", 
         value: 125, 
-        measured_at: "2026-04-25T19:30:00", // 예측 시간
+        measured_at: `${dateStr}T19:30:00`, // 예측 시간
         record_type: "식후2시간",
         advice: "다음 식사에는 식이섬유를 더 추가해보세요.",
         related_meal: {
@@ -324,7 +300,7 @@ export default function HomeScreen() {
     
 
     return baseData;
-  }, [reportData, isAdded, inputSugarValue, inputTime, inputRecordType]);
+  }, [reportData, isAdded, inputSugarValue, inputTime, inputRecordType, selectedDate]);
 
   if (!userData || !reportData) return <View><Text>로딩 중...</Text></View>;
 
@@ -496,9 +472,10 @@ export default function HomeScreen() {
                   ) : (
                     /* 기록 전에는 기존처럼 숫자만 표시 */
                     <Text style={styles.mealLunchCal}>-</Text>
+                    
                   )}
                 </View>
-                <Text style={styles.mealItemLabel}>점심</Text>
+                <Text style={styles.mealItemLabel}>저녁</Text>
               </View>
 
               {/* 간식 - snack */}

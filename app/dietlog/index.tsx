@@ -147,9 +147,9 @@ export default function DietLogScreen() {
   const handleImageResult = (uri: string) => {
     setLoading(true);
     setTimeout(() => {
-      setLoading(false); // 로딩 해제
-      router.push({ pathname: '/dietlog/result', params: { imageUri: uri } });
-    }, 2500);
+       router.push({ pathname: '/dietlog/result', params: { imageUri: uri } });
+       setLoading(false); // 로딩 해제
+    }, 7000);
   };
 
   const pickImage = async () => {
